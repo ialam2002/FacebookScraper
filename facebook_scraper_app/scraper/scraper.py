@@ -1,0 +1,304 @@
+import sys
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from collections import deque
+import time
+import os
+from tkinter import messagebox
+import json
+
+class FacebookFriendsScraper:
+    def __init__(self, driver_path=None, driver=None):
+        """Initialize the scraper with bundled chromedriver or use existing driver."""
+        self.driver_path = self._get_driver_path(driver_path) if driver is None else None
+        self.driver = driver if driver is not None else self._initialize_driver()
+        self.logged_in = False
+        self.visited_profiles = set()
+
+    def _get_driver_path(self, driver_path):
+        """Determine the correct chromedriver path for packaged or dev environment."""
+        if driver_path:
+            return driver_path
+            
+        if getattr(sys, 'frozen', False):
+            # Running in a PyInstaller bundle
+            base_path = sys._MEIPASS
+        else:
+            # Running in normal Python environment
+            base_path = os.path.dirname(os.path.abspath(__file__))
+        
+        # Look for chromedriver in the application directory
+        return os.path.join(base_path, 'chromedriver.exe')
+    
+    def _initialize_driver(self):
+        """Initialize and configure the Chrome driver."""
+        chrome_options = Options()
+        chrome_options.add_argument("--disable-notifications")
+        chrome_options.add_argument("--start-maximized")
+        chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+        
+        try:
+            return webdriver.Chrome(service=Service(self.driver_path), options=chrome_options)
+        except Exception as e:
+            messagebox.showerror(
+                "ChromeDriver Error",
+                f"Failed to initialize ChromeDriver: {str(e)}\n\n"
+                "Please ensure:\n"
+                "1. Chrome browser is installed\n"
+                "2. Your Chrome version matches the bundled ChromeDriver\n"
+                "3. No other ChromeDriver instances are running"
+            )
+            raise
+    
+    def login(self, email, password):
+        """Log in to Facebook."""
+        print("Logging in to Facebook...")
+        self.driver.get("https://www.facebook.com")
+        
+        try:
+            # Accept cookies if the popup appears
+            try:
+                cookie_button = WebDriverWait(self.driver, 5).until(
+                    EC.element_to_be_clickable((By.XPATH, "//button[contains(string(), 'Allow essential and optional cookies')]"))
+                )
+                cookie_button.click()
+            except:
+                pass  # Cookie popup didn't appear
+            
+            email_elem = self.driver.find_element(By.ID, "email")
+            email_elem.send_keys(email)
+            time.sleep(2)
+            password_elem = self.driver.find_element(By.ID, "pass")
+            password_elem.send_keys(password)
+            time.sleep(2)
+            password_elem.send_keys(Keys.RETURN)
+            time.sleep(5)  # Wait for login to complete
+            
+            # Verify login was successful
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, "//div[contains(@aria-label, 'Facebook')]"))
+                )
+                self.logged_in = True
+                return True
+            except:
+                return False
+                
+        except Exception as e:
+            print(f"Login failed: {str(e)}")
+            return False
+    
+    def _get_profile_name(self):
+        """Extract the profile name from the current page."""
+        try:
+            name_element = WebDriverWait(self.driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, '//*[contains(concat(" ", @class, " "), concat(" ", "x1qlqyl8", " "))]'))
+            )
+            return name_element.text
+        except Exception as e:
+            print(f"Could not extract profile name: {e}")
+            return "Unknown"
+    
+    def get_friends_list(self, profile_url, max_friends=2000):
+        """
+        Get the friends list for a given profile URL using infinite scrolling.
+        Returns a dictionary with profile info and friends list including profile pictures.
+        """
+        if not self.logged_in:
+            print("Please login first")
+            return None
+            
+        result = {
+            'profile_name': '',
+            'profile_url': profile_url,
+            'profile_pic': None,  # Add this field for the profile's picture
+            'friends': []
+        }
+        
+        try:
+            # Go to profile and get name
+            self.driver.get(profile_url)
+            time.sleep(3)
+            profile_name = self._get_profile_name()
+            result['profile_name'] = profile_name
+            
+            # Get the profile picture of the user whose friends we're scraping
+            try:
+                # Try to find the profile picture container
+                parent_container = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.XPATH, 
+                        "//div[contains(@class, 'x1jx94hy') and " +
+                        "contains(@class, 'x1c9tyrk') and " +
+                        "contains(@class, 'xeusxvb')]"))
+                )
+                
+                # Find the profile picture div inside it
+                profile_pic_div = parent_container.find_element(
+                    By.XPATH,
+                    ".//div[contains(@class, 'x1rg5ohu') and " +
+                    "contains(@class, 'x1n2onr6') and " +
+                    "contains(@class, 'x3ajldb') and " +
+                    "contains(@class, 'x1ja2u2z')]"
+                )
+                
+                # Extract the SVG > image URL
+                svg = profile_pic_div.find_element(By.TAG_NAME, "svg")
+                image = svg.find_element(By.TAG_NAME, "image")
+                profile_pic_url = image.get_attribute("xlink:href") or image.get_attribute("href")
+                
+                if profile_pic_url:
+                    result['profile_pic'] = profile_pic_url
+                    print(f"Found profile picture for {profile_name}: {profile_pic_url}")
+            except Exception as e:
+                print(f"Could not extract profile picture for {profile_name}: {e}")
+            
+            # Navigate to friends page
+            try:
+                # Try clicking the Friends link
+                friends_link = WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.LINK_TEXT, 'Friends')))
+                friends_link.click()
+                time.sleep(3)
+            except:
+                # Fallback to direct friends URL
+                self.driver.get(profile_url + "/friends")
+                time.sleep(3)
+                
+            # Infinite scroll implementation
+            last_height = self.driver.execute_script("return document.body.scrollHeight")
+            no_new_friends_count = 0
+            max_no_new_friends = 3  # Stop if no new friends after this many scrolls
+            
+            while True:
+                # Scroll to bottom
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)  # Wait to load
+                
+                # Calculate new scroll height and compare with last scroll height
+                new_height = self.driver.execute_script("return document.body.scrollHeight")
+                if new_height == last_height:
+                    no_new_friends_count += 1
+                else:
+                    no_new_friends_count = 0
+                    
+                last_height = new_height
+                
+                # Check if we've reached max friends or no new friends are loading
+                friend_elements = self.driver.find_elements(By.XPATH, '//a[contains(@href, "/") and .//span[@dir="auto"]]')
+                if len(friend_elements) >= max_friends or no_new_friends_count >= max_no_new_friends:
+                    break
+            
+            # Find all friend link elements
+            friend_elements = self.driver.find_elements(By.XPATH, '//a[contains(@href, "/") and .//span[@dir="auto"]]')
+            
+            # Find all profile picture elements
+            profile_pics = self.driver.find_elements(By.XPATH, '//div[contains(@class, "x6s0dn4")]//img[contains(@class, "x1obq294")]')
+            
+            # Create a list of profile picture URLs
+            profile_pic_urls = [img.get_attribute('src') for img in profile_pics if img.get_attribute('src')]
+            
+            seen_urls = set()
+            for i, element in enumerate(friend_elements):
+                if len(result['friends']) >= max_friends:
+                    break
+                    
+                try:
+                    href = element.get_attribute('href')
+                    name = element.find_element(By.XPATH, './/span[@dir="auto"]').text
+                    
+                    # Skip if this is the profile owner or a duplicate
+                    if (href and name and href not in seen_urls and 
+                        "facebook.com" in href and 
+                        name != profile_name and  # Skip if name matches profile owner
+                        href != profile_url):     # Skip if URL matches profile URL
+                        
+                        # Get profile picture URL if available
+                        profile_pic = profile_pic_urls[i] if i < len(profile_pic_urls) else None
+                        
+                        result['friends'].append({
+                            'name': name,
+                            'url': href,
+                            'profile_pic': profile_pic  # Add profile picture URL
+                        })
+                        seen_urls.add(href)
+                except:
+                    continue
+                    
+        except Exception as e:
+            print(f"Error getting friends for {profile_url}: {e}")
+        
+        return result
+    
+    def scrape_friends_network(self, start_urls, depth=0, max_friends_per_profile=100, output_file=None):
+        """
+        Scrape friends network up to a specified depth using BFS approach.
+        """
+        if not self.logged_in:
+            print("Please login first")
+            return None
+            
+        network = {}
+        queue = deque()
+        
+        # Initialize queue with starting profiles
+        for url in start_urls:
+            if url not in self.visited_profiles:
+                queue.append((url, 0))  # (url, current_depth)
+                self.visited_profiles.add(url)
+        
+        while queue:
+            current_url, current_depth = queue.popleft()
+            
+            # Skip if we've reached max depth
+            if current_depth > depth:
+                continue
+                
+            print(f"\nProcessing profile (depth {current_depth}): {current_url}")
+            
+            # Get friends for current profile
+            friends_data = self.get_friends_list(current_url, max_friends=max_friends_per_profile)
+            
+            if not friends_data:
+                continue
+                
+            # Add to network structure
+            if current_url not in network:
+                network[current_url] = {
+                    'profile_name': friends_data['profile_name'],
+                    'profile_pic': friends_data.get('profile_pic'),  # Store profile picture
+                    'depth': current_depth,
+                    'friends': []
+                }
+            
+            # Process friends - including profile pictures
+            for friend in friends_data['friends']:
+                network[current_url]['friends'].append({
+                    'name': friend['name'],
+                    'url': friend['url'],
+                    'profile_pic': friend.get('profile_pic')  # Include profile picture URL
+                })
+                
+                # Add to queue for next level if we haven't reached max depth
+                if current_depth < depth and friend['url'] not in self.visited_profiles:
+                    queue.append((friend['url'], current_depth + 1))
+                    self.visited_profiles.add(friend['url'])
+            
+            # Save intermediate results
+            if output_file:
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(network, f, ensure_ascii=False, indent=2)
+            
+            #delay
+            time.sleep(2)
+        
+        return network
+    
+    def close(self):
+        """Close the browser (only if we own the driver)."""
+        if hasattr(self, 'driver') and self.driver and self.driver_path is not None:
+            self.driver.quit()
