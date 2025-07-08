@@ -232,15 +232,16 @@ class FacebookScraper:
                 'div.x193iq5w.x1xwk8fm span.xjp7ctv > a[href*="facebook.com"]'
             )))
 
-            # Get unique URLs
-            unique_urls = set()
+            # Get unique URLs in order of appearance
+            unique_urls = []
             for link in links:
                 url = link.get_attribute("href")
                 clean_url = self.clean_facebook_url(url)
-                unique_urls.add(clean_url)
+                if clean_url not in unique_urls:
+                    unique_urls.append(clean_url)
 
             # Visit each profile and extract data
-            for url in list(unique_urls)[:max_profiles]:
+            for url in unique_urls[:max_profiles]:
                 try:
                     profile_data = {'url': url, 'profile_pic': None, 'name': None}
                     self.driver.get(url)

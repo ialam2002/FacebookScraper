@@ -1,0 +1,56 @@
+Facebook Scraper Application - User Guide
+=========================================
+
+This guide explains how to use the Facebook Scraper application to collect, search, and visualize Facebook friend data.
+
+Getting Started
+---------------
+1. Install all required dependencies:
+   Open a terminal in the application folder and run:
+   pip install -r requirements.txt
+2. Ensure you have Google Chrome installed and a compatible chromedriver in facebook_scraper_app/chromedriver/.
+
+Launching the Application
+-------------------------
+- Run the program by executing:
+  python main.py
+
+Step-by-Step Workflow
+---------------------
+1. **Login**
+   - Go to the Config tab.
+   - Enter your Facebook email and password.
+   - Click the Login button. Wait for confirmation.
+
+2. **Scraping Friends**
+   - Switch to the Scraping tab.
+   - Enter one or more Facebook profile URLs (one per line or comma-separated).
+   - Adjust scraping options as needed (depth, max friends, etc.).
+   - Click Start Scraping. Progress and results will be shown.
+
+3. **Viewing and Exporting Results**
+   - Go to the Results tab.
+   - View the scraped data in the results area.
+   - Use the Export button to save results as a CSV file.
+   - Use the Load button to import previously saved results.
+
+4. **Searching by Image**
+   - Go to the Search tab.
+   - Upload a profile image to search for similar faces among the scraped profiles.
+   - View the results, including similarity scores and profile links.
+
+5. **Visualizing the Network**
+   - Go to the Visualization tab.
+   - Adjust graph layout, node size, color scheme, and other options.
+   - Click Generate Graph to create an interactive network graph.
+   - Use Save as HTML to save the graph, or Open in Browser to view it interactively.
+
+Tips
+----
+- Hover over labels and fields for tooltips and extra guidance.
+- For best results, use clear and recent profile images.
+- If scraping fails, check your Facebook login and chromedriver version.
+
+Support
+-------
+For help, see the DEVELOPER_DOCUMENTATION.txt or contact the project maintainers.

@@ -1,0 +1,9 @@
+customtkinter
+selenium
+networkx
+plotly
+pillow
+requests
+opencv-python
+numpy
+deepface

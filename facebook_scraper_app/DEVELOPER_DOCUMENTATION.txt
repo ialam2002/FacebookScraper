@@ -1,0 +1,80 @@
+Facebook Scraper Application - Developer Documentation
+========================================================
+
+Overview
+--------
+This project is a modular, GUI-based Facebook scraping tool designed for maintainability, usability, and extensibility. It uses CustomTkinter for the interface, Selenium for web automation, and Plotly/NetworkX for graph visualization. The codebase is organized into logical modules for configuration, scraping, searching, results management, and visualization.
+
+Project Structure
+-----------------
+- main.py
+    Entry point. Launches the main GUI application and handles top-level exceptions.
+- gui/
+    - gui.py: Main application window, tab management, and event routing. Instantiates all tabs and routes events between them.
+    - config_tab.py: Facebook login and configuration tab. Handles user credentials and login logic.
+    - scraping_tab.py: Scraping parameters and job control tab. Lets users input profile URLs and scraping options.
+    - search_tab.py: Profile search and face matching tab. Allows searching for profiles by image and displays results.
+    - results_tab.py: Results display and export tab. Shows scraping/search results and provides export/load features.
+    - visualization_tab.py: Network graph configuration and display tab. Lets users configure and generate interactive network graphs.
+    - visualization.py: Graph generation logic using Plotly and NetworkX. Handles the creation and saving of HTML graph files.
+    - scraper_control.py: Controller for scraping logic and Selenium driver lifecycle. Manages login, scraping, and driver reuse.
+    - config.py: Application-wide configuration constants. Central place for default settings.
+- scraper/
+    - scraper.py: Facebook scraping logic using Selenium. Handles login, navigation, and data extraction from Facebook.
+- profile_search/
+    - search.py: Face matching and image processing logic. Uses DeepFace and OpenCV for face recognition and image handling.
+
+Key Concepts
+------------
+- Each GUI tab is encapsulated in its own class, managing its widgets and logic. Tabs communicate via the main app instance.
+- Long-running operations (e.g., login, scraping, face matching) are run in background threads to keep the UI responsive. Use the threading module for this.
+- Input validation and tooltips are provided for all user-facing fields to improve usability and prevent errors.
+- The visualization tab allows users to generate, save, and open interactive network graphs. Graphs are generated as HTML files using Plotly and can be opened in the browser.
+- Results can be exported to CSV and loaded back for further analysis. The results tab provides these features.
+- The scraping logic is separated from the GUI, making it easier to test and maintain.
+
+Data Flow Example
+-----------------
+1. User logs in via the Config tab. Credentials are validated and login is performed in a background thread.
+2. User enters profile URLs and scraping options in the Scraping tab, then starts scraping. ScraperController manages the Selenium driver and scraping process.
+3. Scraped data is displayed in the Results tab. User can export or clear results.
+4. User can search for profiles by uploading an image in the Search tab. Face matching is performed and results are shown with similarity scores.
+5. User configures graph options in the Visualization tab and generates a network graph. The graph is displayed and can be saved or opened in a browser.
+
+Extending the Application
+-------------------------
+- To add a new feature, create a new module or tab class and integrate it in gui.py. Register the new tab in the main window.
+- To change scraping logic, update scraper/scraper.py and the ScraperController. You can add new scraping methods or data extraction logic.
+- To modify visualization, update gui/visualization.py and gui/visualization_tab.py. You can add new graph types or layout options.
+- For new configuration options, add them to gui/config.py and update the relevant tab to use them.
+- To add new export formats, extend the ResultsTab with new export methods.
+
+Best Practices
+--------------
+- Keep all widget references as attributes of their tab class for modularity and easier maintenance.
+- Use docstrings and inline comments for all classes and methods to aid future developers.
+- Use threading for any operation that may block the UI, and always update the UI from the main thread.
+- Validate all user input and provide clear error messages to prevent crashes and improve user experience.
+- Keep business logic (scraping, searching, visualization) separate from GUI code for testability and maintainability.
+- Use requirements.txt to manage dependencies and ensure all developers have the same environment.
+
+Troubleshooting
+---------------
+- If the application fails to start, check for missing dependencies (see requirements.txt). Install them with `pip install -r requirements.txt`.
+- Selenium requires a compatible chromedriver in facebook_scraper_app/chromedriver/. Make sure the version matches your installed Chrome browser.
+- For issues with graph generation, ensure Plotly and NetworkX are installed and up to date.
+- If scraping fails, check for Facebook layout changes or account restrictions. Update selectors in scraper.py as needed.
+- For face matching errors, ensure DeepFace and OpenCV are installed and your images are clear and well-lit.
+
+Example Usage
+-------------
+1. Run the application: `python main.py`
+2. Log in with your Facebook credentials in the Config tab.
+3. Enter profile URLs and scraping options in the Scraping tab, then click Start Scraping.
+4. View and export results in the Results tab.
+5. Search for profiles by uploading an image in the Search tab.
+6. Generate and view network graphs in the Visualization tab.
+
+Contact
+-------
+For further questions, contact the original author or maintainers listed in the project repository.
