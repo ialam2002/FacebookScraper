@@ -1,3 +1,9 @@
+
+"""
+Main entry point for the Facebook Scraper GUI application.
+Initializes and runs the main application window.
+"""
+
 from gui.gui import FacebookScraperApp
 
 if __name__ == "__main__":

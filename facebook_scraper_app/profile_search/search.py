@@ -1,3 +1,8 @@
+
+"""
+Profile search and face matching logic for Facebook Scraper.
+Includes image processing and Selenium automation.
+"""
 import requests
 import cv2
 import numpy as np

@@ -1,3 +1,7 @@
+
+"""
+Tab for configuring scraping parameters and starting scraping jobs.
+"""
 import customtkinter as ctk
 from tkinter import messagebox, filedialog, scrolledtext
 

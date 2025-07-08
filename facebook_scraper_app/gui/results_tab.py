@@ -1,3 +1,7 @@
+
+"""
+Tab for displaying and exporting scraping results.
+"""
 import customtkinter as ctk
 from tkinter import messagebox, filedialog, scrolledtext
 

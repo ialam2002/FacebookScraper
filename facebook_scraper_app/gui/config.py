@@ -1,4 +1,6 @@
-# Configuration constants can be added here
+"""
+Configuration constants for the Facebook Scraper application.
+"""
 DEFAULT_SETTINGS = {
     "appearance_mode": "System",
     "color_theme": "blue",

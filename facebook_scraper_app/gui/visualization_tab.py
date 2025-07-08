@@ -1,3 +1,7 @@
+
+"""
+Tab for configuring and displaying the network graph visualization.
+"""
 import customtkinter as ctk
 
 class VisualizationTab:

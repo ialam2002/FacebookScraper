@@ -1,3 +1,8 @@
+
+"""
+Facebook friends scraping logic using Selenium automation.
+Handles login, navigation, and data extraction.
+"""
 import sys
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service

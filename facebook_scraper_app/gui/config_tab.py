@@ -1,3 +1,7 @@
+
+"""
+Tab for configuring Facebook login and application settings.
+"""
 import customtkinter as ctk
 from tkinter import messagebox
 

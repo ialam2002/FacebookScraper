@@ -1,4 +1,8 @@
 
+"""
+Main GUI application for the Facebook Scraper.
+Handles tab management, event routing, and main window logic.
+"""
 import customtkinter as ctk
 from tkinter import messagebox, filedialog, scrolledtext
 import os

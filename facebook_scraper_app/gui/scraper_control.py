@@ -1,3 +1,7 @@
+
+"""
+Controller for managing Facebook scraping logic and driver lifecycle.
+"""
 from scraper.scraper import FacebookFriendsScraper
 
 class ScraperController:

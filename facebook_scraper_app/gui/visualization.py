@@ -1,3 +1,7 @@
+
+"""
+Graph visualization logic for Facebook network data using Plotly and NetworkX.
+"""
 import os
 import json
 import tempfile

@@ -1,3 +1,7 @@
+
+"""
+Tab for searching profiles and displaying face match results.
+"""
 import customtkinter as ctk
 from tkinter import filedialog, messagebox, scrolledtext
 import threading
