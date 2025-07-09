@@ -276,7 +276,7 @@ class SearchTab:
         batch_path = self.batch_path_entry.get().strip()
         # Gather all individual person entries
         people = []
-        for name_entry, image_entry in self.person_rows:
+        for name_entry, image_entry, _ in self.person_rows:
             name = name_entry.get().strip()
             image_path = image_entry.get().strip()
             if name and image_path and name != "Full Name":
@@ -318,11 +318,12 @@ class SearchTab:
                     if self.search_active:
                         target_img = ImageProcessor.load_image(image_path)
                         matches = matcher.find_matches(target_img, name, top_k=5)
+                    all_results.append((name, matches))
                     if self.search_active:
-                        self.app.after(0, lambda m=matches, n=name: self.display_results([(n, m)]))
+                        # Display all accumulated results so far
+                        self.app.after(0, lambda results=list(all_results): self.display_results(results))
                     else:
                         self.app.after(0, lambda: self.search_status.configure(text="Search stopped by user.", text_color="orange"))
-                    all_results.append((name, matches))
         except Exception as e:
             self.app.after(0, lambda: self.search_status.configure(
                 text=f"Error: {str(e)}", 

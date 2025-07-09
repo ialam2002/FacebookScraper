@@ -20,18 +20,35 @@ class GraphVisualizer:
                              base_node_size=10, edge_width=1, color_scheme="YlGnBu"):
         G = nx.Graph()
 
+        # Add all main profiles
+        main_profiles = set()
         for profile_url, data in network_data.items():
             G.add_node(data['profile_name'], 
                      depth=data['depth'], 
                      url=profile_url,
                      profile_pic=data.get('profile_pic'))
-            
+            main_profiles.add(data['profile_name'])
+
+        # Add friends and edges
+        for profile_url, data in network_data.items():
             for friend in data['friends']:
                 G.add_node(friend['name'], 
                          depth=data['depth'] + 1, 
                          url=friend['url'],
                          profile_pic=friend.get('profile_pic'))
                 G.add_edge(data['profile_name'], friend['name'])
+
+        # Add edges between main profiles if they are friends with each other
+        main_profile_names = list(main_profiles)
+        for i, name1 in enumerate(main_profile_names):
+            for name2 in main_profile_names[i+1:]:
+                # Check if name2 is in name1's friends or vice versa
+                data1 = network_data.get(G.nodes[name1]['url'])
+                data2 = network_data.get(G.nodes[name2]['url'])
+                if data1 and any(f['name'] == name2 for f in data1['friends']):
+                    G.add_edge(name1, name2)
+                elif data2 and any(f['name'] == name1 for f in data2['friends']):
+                    G.add_edge(name1, name2)
 
         self.num_nodes = len(G.nodes())
         self.num_edges = len(G.edges())
@@ -76,7 +93,6 @@ class GraphVisualizer:
             node_text.append(node)
             depth = G.nodes[node].get('depth', 1)
             node_color.append(depth)
-            # node_size (param) is int, node_sizes (list) is for marker size
             node_sizes.append(base_node_size + (node_size * (3 - min(depth, 3))))
             node_urls.append(G.nodes[node].get('url', ''))
             node_images.append(G.nodes[node].get('profile_pic', ''))
@@ -138,7 +154,8 @@ class GraphVisualizer:
 
         temp_dir = tempfile.mkdtemp()
         self.plotly_html_path = os.path.join(temp_dir, "plotly_graph.html")
-        
+        self._last_fig = fig  # Store for PDF export
+
         html_template = """
         <!DOCTYPE html>
         <html>
@@ -181,6 +198,10 @@ class GraphVisualizer:
             f.write(html_template)
             
         return self.plotly_html_path
+    def export_pdf(self, pdf_path):
+        # Requires kaleido: pip install -U kaleido
+        if hasattr(self, '_last_fig') and self._last_fig is not None:
+            self._last_fig.write_image(pdf_path, format="pdf")
     
     def save_graph(self, save_path):
         with open(self.plotly_html_path, 'r', encoding='utf-8') as src, \
