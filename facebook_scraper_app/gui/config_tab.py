@@ -27,7 +27,7 @@ class ConfigTab:
         self.app.password_entry = ctk.CTkEntry(frame, width=400, show="*")
         self.app.password_entry.pack(padx=10, pady=(0, 15))
 
-        login_btn = ctk.CTkButton(frame, text="Test Login", command=self.app.test_login)
+        login_btn = ctk.CTkButton(frame, text="Login", command=self.app.test_login)
         login_btn.pack(pady=10)
 
         self.app.config_status_label = ctk.CTkLabel(frame, text="Not logged in", text_color="gray")

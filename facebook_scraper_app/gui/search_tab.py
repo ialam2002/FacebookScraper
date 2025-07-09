@@ -131,43 +131,30 @@ class SearchTab:
 
     def build_search_tab(self):
         frame = self.frame
-        # Search parameters frame
-        params_frame = ctk.CTkFrame(frame)
-        params_frame.pack(fill="x", padx=10, pady=10)
+        # --- Individual Search Section ---
+        self.indiv_search_frame = ctk.CTkFrame(frame)
+        self.indiv_search_frame.pack(fill="x", padx=10, pady=10)
 
-        # Name entry
-        name_label = ctk.CTkLabel(params_frame, text="Full Name:")
-        name_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.name_entry = ctk.CTkEntry(params_frame, width=300)
-        self.name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
-
-        # Image upload
-        image_label = ctk.CTkLabel(params_frame, text="Reference Image:")
-        image_label.grid(row=1, column=0, padx=5, pady=5, sticky="w")
-
-        image_btn_frame = ctk.CTkFrame(params_frame, fg_color="transparent")
-        image_btn_frame.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
-
-        self.image_path_entry = ctk.CTkEntry(image_btn_frame)
-        self.image_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
-
-        browse_img_btn = ctk.CTkButton(
-            image_btn_frame, 
-            text="Browse", 
-            width=80, 
-            command=self.browse_image
+        self.person_rows = []
+        self.add_person_btn = ctk.CTkButton(
+            self.indiv_search_frame,
+            text="Add Person",
+            command=self.add_person_row
         )
-        browse_img_btn.pack(side="left")
+        self.add_person_row()  # Add initial row
 
-        # Batch upload
+        # --- Batch Upload Section ---
+        self.batch_frame = ctk.CTkFrame(frame)
+        self.batch_frame.pack(fill="x", padx=10, pady=(0, 10))
+
         batch_label = ctk.CTkLabel(
-            params_frame,
-            text="Or upload Excel/CSV/JSON (columns: name, folder, image_name).\nIf folder is blank, image_name is treated as a URL."
+            self.batch_frame,
+            text="Batch upload: Excel/CSV/JSON (columns: name, folder, image_name). If folder is blank, image_name is treated as a URL."
         )
-        batch_label.grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        batch_label.pack(anchor="w", padx=5, pady=5)
 
-        batch_btn_frame = ctk.CTkFrame(params_frame, fg_color="transparent")
-        batch_btn_frame.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        batch_btn_frame = ctk.CTkFrame(self.batch_frame, fg_color="transparent")
+        batch_btn_frame.pack(fill="x", padx=5, pady=5)
 
         self.batch_path_entry = ctk.CTkEntry(batch_btn_frame)
         self.batch_path_entry.pack(side="left", fill="x", expand=True, padx=(0, 5))
@@ -180,15 +167,14 @@ class SearchTab:
         )
         browse_batch_btn.pack(side="left")
 
-        # Search button
+        # --- Search and Stop Buttons ---
         search_btn = ctk.CTkButton(
-            frame, 
-            text="Search Profiles", 
+            frame,
+            text="Search Profiles",
             command=self.start_search
         )
         search_btn.pack(pady=10)
 
-        # Stop Search button
         self.stop_search_button = ctk.CTkButton(
             frame,
             text="Stop Search",
@@ -197,22 +183,72 @@ class SearchTab:
         )
         self.stop_search_button.pack(pady=5)
 
-        # Results frame
+        # --- Results Section ---
         results_frame = ctk.CTkFrame(frame)
         results_frame.pack(fill="both", expand=True, padx=10, pady=10)
 
-        # Use a single scrollable frame for results
         self.results_container = ctk.CTkScrollableFrame(results_frame)
         self.results_container.pack(fill="both", expand=True)
 
-        # Status label
         self.search_status = ctk.CTkLabel(frame, text="Ready", text_color="gray")
         self.search_status.pack(pady=5)
 
-        # Progress bar
         self.search_progress = ctk.CTkProgressBar(frame, mode="determinate")
         self.search_progress.set(0)
         self.search_progress.pack(fill="x", padx=10, pady=(0, 10))
+
+    def add_person_row(self):
+        row_frame = ctk.CTkFrame(self.indiv_search_frame, fg_color="transparent")
+        # Check if add_person_btn is packed
+        if self.add_person_btn.winfo_manager():
+            row_frame.pack(fill="x", pady=4, before=self.add_person_btn)
+        else:
+            row_frame.pack(fill="x", pady=4)
+
+        name_entry = ctk.CTkEntry(row_frame, width=200)
+        name_entry.pack(side="left", padx=(0, 5))
+        name_entry.insert(0, "Full Name")
+
+        image_path_entry = ctk.CTkEntry(row_frame, width=200)
+        image_path_entry.pack(side="left", padx=(0, 5))
+
+        browse_btn = ctk.CTkButton(
+            row_frame,
+            text="Browse",
+            width=80,
+            command=lambda e=image_path_entry: self.browse_image_for_entry(e)
+        )
+        browse_btn.pack(side="left", padx=(0, 5))
+
+        del_btn = ctk.CTkButton(
+            row_frame,
+            text="Delete",
+            width=60,
+            fg_color="#b22222",
+            text_color="white",
+            command=lambda: self.delete_person_row(row_frame)
+        )
+        del_btn.pack(side="left")
+
+        self.person_rows.append((name_entry, image_path_entry, row_frame))
+
+        # Always keep the add button at the bottom
+        self.add_person_btn.pack_forget()
+        self.add_person_btn.pack(anchor="w", pady=5)
+
+    def delete_person_row(self, row_frame):
+        # Remove from list and destroy the frame
+        self.person_rows = [row for row in self.person_rows if row[2] != row_frame]
+        row_frame.destroy()
+
+    def browse_image_for_entry(self, entry):
+        file_path = filedialog.askopenfilename(
+            title="Select Reference Image",
+            filetypes=[("Image files", "*.jpg *.jpeg *.png"), ("All files", "*.*")]
+        )
+        if file_path:
+            entry.delete(0, "end")
+            entry.insert(0, file_path)
 
     def browse_image(self):
         file_path = filedialog.askopenfilename(
@@ -237,11 +273,16 @@ class SearchTab:
         if not self.app.scraper_controller.logged_in:
             messagebox.showerror("Error", "Please login first in the Configuration tab")
             return
-        name = self.name_entry.get().strip()
-        image_path = self.image_path_entry.get().strip()
         batch_path = self.batch_path_entry.get().strip()
-        if not (name and image_path) and not batch_path:
-            messagebox.showerror("Error", "Please provide either name and image OR a batch file")
+        # Gather all individual person entries
+        people = []
+        for name_entry, image_entry in self.person_rows:
+            name = name_entry.get().strip()
+            image_path = image_entry.get().strip()
+            if name and image_path and name != "Full Name":
+                people.append((name, image_path))
+        if not people and not batch_path:
+            messagebox.showerror("Error", "Please provide at least one person (name and image) or a batch file")
             return
         self.search_status.configure(text="Starting search...", text_color="gray")
         self.search_progress.set(0)
@@ -250,33 +291,38 @@ class SearchTab:
         self.search_active = True
         self.stop_search_button.configure(state="normal")
         threading.Thread(
-            target=self.run_search,
-            args=(name, image_path, batch_path),
+            target=self.run_search_multi,
+            args=(people, batch_path),
             daemon=True
         ).start()
 
-    def run_search(self, name, image_path, batch_path):
+    def run_search_multi(self, people, batch_path):
         try:
             matcher = FaceMatcher(
                 self.app.email_entry.get(),
                 self.app.password_entry.get(),
                 driver=getattr(self.app.scraper_controller.scraper, 'driver', None)
             )
+            all_results = []
             if batch_path:
                 self.process_batch_file(matcher, batch_path)
             else:
-                target_img = ImageProcessor.load_image(image_path)
-                self.app.after(0, lambda: self.search_status.configure(
-                    text=f"Searching for {name}...", 
-                    text_color="gray"
-                ))
-                matches = []
-                if self.search_active:
-                    matches = matcher.find_matches(target_img, name)
-                if self.search_active:
-                    self.app.after(0, lambda: self.display_results(matches))
-                else:
-                    self.app.after(0, lambda: self.search_status.configure(text="Search stopped by user.", text_color="orange"))
+                for name, image_path in people:
+                    if not self.search_active:
+                        break
+                    self.app.after(0, lambda n=name: self.search_status.configure(
+                        text=f"Searching for {n}...", 
+                        text_color="gray"
+                    ))
+                    matches = []
+                    if self.search_active:
+                        target_img = ImageProcessor.load_image(image_path)
+                        matches = matcher.find_matches(target_img, name, top_k=5)
+                    if self.search_active:
+                        self.app.after(0, lambda m=matches, n=name: self.display_results([(n, m)]))
+                    else:
+                        self.app.after(0, lambda: self.search_status.configure(text="Search stopped by user.", text_color="orange"))
+                    all_results.append((name, matches))
         except Exception as e:
             self.app.after(0, lambda: self.search_status.configure(
                 text=f"Error: {str(e)}", 
@@ -361,8 +407,8 @@ class SearchTab:
             self.app.after(0, lambda: self.search_progress.set(0))
             self.app.after(0, lambda: self.stop_search_button.configure(state="disabled"))
 
-    def display_results(self, results):
-        # Actual display logic is here; do NOT call self.app.display_results to avoid recursion
+    def display_results(self, results_by_person):
+        # results_by_person: list of (person_name, [results])
         from PIL import Image, ImageTk
         import requests
         from io import BytesIO
@@ -371,7 +417,7 @@ class SearchTab:
         for widget in self.results_container.winfo_children():
             widget.destroy()
 
-        if not results:
+        if not results_by_person:
             no_results = ctk.CTkLabel(
                 self.results_container,
                 text="No matching profiles found.",
@@ -381,89 +427,106 @@ class SearchTab:
             no_results.pack(pady=20)
             return
 
-        # Store image references to prevent garbage collection
         if not hasattr(self, '_profile_img_refs'):
             self._profile_img_refs = []
         self._profile_img_refs.clear()
 
-        for idx, profile in enumerate(results, 1):
-            # Create frame for each result (black background)
-            result_frame = ctk.CTkFrame(self.results_container, fg_color="black", border_width=1, corner_radius=8)
-            result_frame.pack(fill="x", padx=10, pady=8, expand=True)
+        for person_name, results in results_by_person:
+            # Header for this person
+            header = ctk.CTkLabel(
+                self.results_container,
+                text=f"Results for: {person_name}",
+                font=ctk.CTkFont(size=16, weight="bold"),
+                fg_color="black",
+                text_color="#00ffcc"
+            )
+            header.pack(anchor="w", padx=10, pady=(10, 2))
 
-            # Left frame for image
-            left_frame = ctk.CTkFrame(result_frame, fg_color="black")
-            left_frame.pack(side="left", padx=10, pady=10)
+            if not results:
+                no_results = ctk.CTkLabel(
+                    self.results_container,
+                    text="No matching profiles found.",
+                    text_color="gray",
+                    fg_color="black"
+                )
+                no_results.pack(pady=10)
+                continue
 
-            # Try to load and display profile picture
-            try:
-                if profile.get('profile_pic'):
-                    response = requests.get(profile['profile_pic'])
-                    img = Image.open(BytesIO(response.content))
-                    img = img.resize((90, 90), Image.Resampling.LANCZOS)
-                    photo = ImageTk.PhotoImage(img)
-                    self._profile_img_refs.append(photo)
-                    img_label = ctk.CTkLabel(left_frame, image=photo, text="", width=90, height=90, fg_color="black")
-                    img_label.pack(padx=5, pady=5)
-                else:
+            for idx, profile in enumerate(results[:5], 1):
+                # Create frame for each result (black background)
+                result_frame = ctk.CTkFrame(self.results_container, fg_color="black", border_width=1, corner_radius=8)
+                result_frame.pack(fill="x", padx=10, pady=8, expand=True)
+
+                # Left frame for image
+                left_frame = ctk.CTkFrame(result_frame, fg_color="black")
+                left_frame.pack(side="left", padx=10, pady=10)
+
+                # Try to load and display profile picture
+                try:
+                    if profile.get('profile_pic'):
+                        response = requests.get(profile['profile_pic'])
+                        img = Image.open(BytesIO(response.content))
+                        img = img.resize((90, 90), Image.Resampling.LANCZOS)
+                        photo = ImageTk.PhotoImage(img)
+                        self._profile_img_refs.append(photo)
+                        img_label = ctk.CTkLabel(left_frame, image=photo, text="", width=90, height=90, fg_color="black")
+                        img_label.pack(padx=5, pady=5)
+                    else:
+                        placeholder = ctk.CTkLabel(left_frame, text="No\nImage", width=90, height=90, fg_color="black", text_color="white")
+                        placeholder.pack(padx=5, pady=5)
+                except Exception as e:
+                    print(f"Error loading profile image: {e}")
                     placeholder = ctk.CTkLabel(left_frame, text="No\nImage", width=90, height=90, fg_color="black", text_color="white")
                     placeholder.pack(padx=5, pady=5)
-            except Exception as e:
-                print(f"Error loading profile image: {e}")
-                placeholder = ctk.CTkLabel(left_frame, text="No\nImage", width=90, height=90, fg_color="black", text_color="white")
-                placeholder.pack(padx=5, pady=5)
 
-            # Right frame for text info and button
-            info_frame = ctk.CTkFrame(result_frame, fg_color="black")
-            info_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+                # Right frame for text info and button
+                info_frame = ctk.CTkFrame(result_frame, fg_color="black")
+                info_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
 
-            # Profile name and URL
-            name_label = ctk.CTkLabel(
-                info_frame, 
-                text=f"Name: {profile.get('name', 'Unknown')}", 
-                font=ctk.CTkFont(size=15, weight="bold"),
-                fg_color="black",
-                text_color="white"
-            )
-            name_label.pack(anchor="w", pady=2)
+                # Profile name and URL
+                name_label = ctk.CTkLabel(
+                    info_frame, 
+                    text=f"Name: {profile.get('name', 'Unknown')}", 
+                    font=ctk.CTkFont(size=15, weight="bold"),
+                    fg_color="black",
+                    text_color="white"
+                )
+                name_label.pack(anchor="w", pady=2)
 
-            url = profile.get('url', 'N/A')
-            url_label = ctk.CTkLabel(
-                info_frame,
-                text=f"Profile URL: {url}",
-                text_color="#1a0dab" if url != 'N/A' else "gray",
-                cursor="hand2" if url != 'N/A' else "arrow",
-                fg_color="black"
-            )
-            url_label.pack(anchor="w", pady=2)
-            if url != 'N/A':
-                url_label.bind("<Button-1>", lambda e, url=url: self.app.open_url(url))
+                url = profile.get('url', 'N/A')
+                url_label = ctk.CTkLabel(
+                    info_frame,
+                    text=f"Profile URL: {url}",
+                    text_color="#1a0dab" if url != 'N/A' else "gray",
+                    cursor="hand2" if url != 'N/A' else "arrow",
+                    fg_color="black"
+                )
+                url_label.pack(anchor="w", pady=2)
+                if url != 'N/A':
+                    url_label.bind("<Button-1>", lambda e, url=url: self.app.open_url(url))
 
-            # Similarity score (distance)
-            distance = profile.get('distance', float('inf'))
-            if distance != float('inf'):
-                # Lower distance = better match. Show as "Match Score: 1 - distance" for user clarity
-                match_score = max(0.0, 1.0 - distance)
-                score_text = f"Match Score: {match_score:.2f} (Distance: {distance:.2f})"
-            else:
-                score_text = "Match Score: N/A"
-            score_label = ctk.CTkLabel(
-                info_frame,
-                text=score_text,
-                font=ctk.CTkFont(size=13),
-                fg_color="black",
-                text_color="white"
-            )
-            score_label.pack(anchor="w", pady=2)
+                # Similarity score (distance)
+                distance = profile.get('distance', float('inf'))
+                if distance != float('inf'):
+                    match_score = max(0.0, 1.0 - distance)
+                    score_text = f"Match Score: {match_score:.2f} (Distance: {distance:.2f})"
+                else:
+                    score_text = "Match Score: N/A"
+                score_label = ctk.CTkLabel(
+                    info_frame,
+                    text=score_text,
+                    font=ctk.CTkFont(size=13),
+                    fg_color="black",
+                    text_color="white"
+                )
+                score_label.pack(anchor="w", pady=2)
 
-            # Add to Scraper button
-            add_button = ctk.CTkButton(
-                info_frame,
-                text="Add to Scraper",
-                command=lambda url=url: self.app.add_to_scraper(url),
-                width=140
-            )
-            add_button.pack(anchor="w", pady=8)
+                add_button = ctk.CTkButton(
+                    info_frame,
+                    text="Add to Scraper",
+                    command=lambda url=url: self.app.add_to_scraper(url),
+                    width=140
+                )
+                add_button.pack(anchor="w", pady=8)
 
-        # Update status
-        self.search_status.configure(text=f"Found {len(results)} result(s).", text_color="green")
+        self.search_status.configure(text=f"Search complete. {len(results_by_person)} person(s) processed.", text_color="green")
