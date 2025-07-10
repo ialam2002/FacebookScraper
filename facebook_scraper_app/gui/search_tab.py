@@ -205,11 +205,16 @@ class SearchTab:
         else:
             row_frame.pack(fill="x", pady=4)
 
-        name_entry = ctk.CTkEntry(row_frame, width=200)
+        try:
+            name_entry = ctk.CTkEntry(row_frame, width=200, placeholder_text="Full Name")
+        except TypeError:
+            name_entry = ctk.CTkEntry(row_frame, width=200)
         name_entry.pack(side="left", padx=(0, 5))
-        name_entry.insert(0, "Full Name")
 
-        image_path_entry = ctk.CTkEntry(row_frame, width=200)
+        try:
+            image_path_entry = ctk.CTkEntry(row_frame, width=200, placeholder_text="Image Path or URL")
+        except TypeError:
+            image_path_entry = ctk.CTkEntry(row_frame, width=200)
         image_path_entry.pack(side="left", padx=(0, 5))
 
         browse_btn = ctk.CTkButton(
