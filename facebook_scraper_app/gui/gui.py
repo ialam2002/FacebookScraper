@@ -216,11 +216,7 @@ class FacebookScraperApp(ctk.CTk):
         node_size_spin = ctk.CTkEntry(params_frame, width=40, textvariable=self.node_size_var)
         node_size_spin.pack(side="left", padx=5)
 
-        base_node_label = ctk.CTkLabel(params_frame, text="Base Node Size:")
-        base_node_label.pack(side="left", padx=5)
-        self.base_node_size_var = ctk.IntVar(value=10)
-        base_node_spin = ctk.CTkEntry(params_frame, width=40, textvariable=self.base_node_size_var)
-        base_node_spin.pack(side="left", padx=5)
+        # Removed base node size control for simplification
 
         edge_width_label = ctk.CTkLabel(params_frame, text="Edge Width:")
         edge_width_label.pack(side="left", padx=5)
@@ -996,10 +992,7 @@ class FacebookScraperApp(ctk.CTk):
                 node_size = int(self.node_size_var.get())
             except Exception:
                 node_size = 15
-            try:
-                base_node_size = int(self.base_node_size_var.get())
-            except Exception:
-                base_node_size = 10
+            base_node_size = None  # Not used anymore
             try:
                 edge_width = int(self.edge_width_var.get())
             except Exception:
@@ -1010,7 +1003,6 @@ class FacebookScraperApp(ctk.CTk):
                 network_data,
                 layout=layout,
                 node_size=node_size,
-                base_node_size=base_node_size,
                 edge_width=edge_width,
                 color_scheme=color_scheme
             )

@@ -16,8 +16,7 @@ class GraphVisualizer:
         self.num_nodes = 0
         self.num_edges = 0
     
-    def generate_network_graph(self, network_data, layout="spring", node_size=15, 
-                             base_node_size=10, edge_width=1, color_scheme="YlGnBu"):
+    def generate_network_graph(self, network_data, layout="spring", node_size=20, edge_width=1, color_scheme="YlGnBu"):
         G = nx.Graph()
 
         # Add all main profiles
@@ -79,47 +78,73 @@ class GraphVisualizer:
             hoverinfo='none',
             mode='lines')
 
-        node_x = []
-        node_y = []
-        node_text = []
-        node_color = []
-        node_sizes = []
-        node_urls = []
-        node_images = []
+        node_x_main = []
+        node_y_main = []
+        node_text_main = []
+        node_urls_main = []
+        node_x_friend = []
+        node_y_friend = []
+        node_text_friend = []
+        node_urls_friend = []
+        main_profile_names = set(main_profiles)
         for node in G.nodes():
             x, y = pos[node]
-            node_x.append(x)
-            node_y.append(y)
-            node_text.append(node)
-            depth = G.nodes[node].get('depth', 1)
-            node_color.append(depth)
-            node_sizes.append(base_node_size + (node_size * (3 - min(depth, 3))))
-            node_urls.append(G.nodes[node].get('url', ''))
-            node_images.append(G.nodes[node].get('profile_pic', ''))
+            url = G.nodes[node].get('url', '')
+            if node in main_profile_names:
+                node_x_main.append(x)
+                node_y_main.append(y)
+                node_text_main.append(node)
+                node_urls_main.append(url)
+            else:
+                node_x_friend.append(x)
+                node_y_friend.append(y)
+                node_text_friend.append(node)
+                node_urls_friend.append(url)
 
-        node_trace = go.Scatter(
-            x=node_x, y=node_y,
+        # Main profiles: blue, Friends: orange
+        node_trace_main = go.Scatter(
+            x=node_x_main, y=node_y_main,
             mode='markers+text',
-            text=node_text,
+            name='Main Profile',
+            text=node_text_main,
             textposition="top center",
             hoverinfo='text',
-            hovertext=[f"<b>{name}</b><br>Click to open profile" for name in node_text],
-            customdata=node_urls,
+            hovertext=[f"<b>{name}</b><br>Main Profile<br>Click to open profile" for name in node_text_main],
+            customdata=node_urls_main,
             marker=dict(
-                showscale=True,
-                colorscale=color_scheme,
-                size=node_sizes,
-                color=node_color,
-                line=dict(width=1, color='DarkSlateGrey'),
-                opacity=0.9),
+                size=node_size,
+                color='royalblue',
+                line=dict(width=2, color='DarkSlateGrey'),
+                opacity=0.95),
             textfont=dict(
                 family="Arial",
                 size=12,
                 color='black'
-            ))
+            )
+        )
+        node_trace_friend = go.Scatter(
+            x=node_x_friend, y=node_y_friend,
+            mode='markers+text',
+            name='Friend',
+            text=node_text_friend,
+            textposition="top center",
+            hoverinfo='text',
+            hovertext=[f"<b>{name}</b><br>Friend<br>Click to open profile" for name in node_text_friend],
+            customdata=node_urls_friend,
+            marker=dict(
+                size=node_size,
+                color='orange',
+                line=dict(width=1, color='DarkSlateGrey'),
+                opacity=0.85),
+            textfont=dict(
+                family="Arial",
+                size=12,
+                color='black'
+            )
+        )
 
         fig = go.Figure(
-            data=[edge_trace, node_trace],
+            data=[edge_trace, node_trace_main, node_trace_friend],
             layout=go.Layout(
                 title=dict(
                     text=f"<b>Facebook Friends Network</b><br><sub>Layout: {layout}</sub>",
@@ -127,7 +152,15 @@ class GraphVisualizer:
                     x=0.5,
                     xanchor='center'
                 ),
-                showlegend=False,
+                showlegend=True,
+                legend=dict(
+                    title="Node Type",
+                    x=0.01,
+                    y=0.99,
+                    bgcolor='rgba(255,255,255,0.8)',
+                    bordercolor='black',
+                    borderwidth=1
+                ),
                 hovermode='closest',
                 margin=dict(b=20, l=20, r=20, t=60),
                 xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),

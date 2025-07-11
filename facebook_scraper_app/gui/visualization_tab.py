@@ -62,11 +62,7 @@ class VisualizationTab:
         node_size_spin = ctk.CTkEntry(params_frame, width=40, textvariable=self.app.node_size_var)
         node_size_spin.pack(side="left", padx=5)
 
-        base_node_label = ctk.CTkLabel(params_frame, text="Base Node Size:")
-        base_node_label.pack(side="left", padx=5)
-        self.app.base_node_size_var = ctk.IntVar(value=10)
-        base_node_spin = ctk.CTkEntry(params_frame, width=40, textvariable=self.app.base_node_size_var)
-        base_node_spin.pack(side="left", padx=5)
+        # Removed base node size control for simplification
 
         edge_width_label = ctk.CTkLabel(params_frame, text="Edge Width:")
         edge_width_label.pack(side="left", padx=5)
