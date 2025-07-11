@@ -939,8 +939,28 @@ class FacebookScraperApp(ctk.CTk):
                 # Add main profiles and their mutual friends
                 for url in main_profiles:
                     data = network_data[url]
-                    # Keep only mutual friends
-                    filtered_friends = [f for f in data.get('friends', []) if (f.get('url') in mutual_friend_keys or f.get('name') in mutual_friend_keys)]
+                    filtered_friends = []
+                    for f in data.get('friends', []):
+                        is_mutual = (f.get('url') in mutual_friend_keys or f.get('name') in mutual_friend_keys)
+                        if is_mutual:
+                            # Find the mutual friend's name
+                            found = None
+                            for url2, data2 in network_data.items():
+                                for f2 in data2.get('friends', []):
+                                    if (f2.get('url') == f.get('url') or f2.get('name') == f.get('name')):
+                                        found = f2
+                                        break
+                                if found:
+                                    break
+                            mutual_name = found.get('name', 'Unknown') if found else (f.get('name') or f.get('url'))
+                            filtered_friends.append({
+                                'name': mutual_name,
+                                'url': mutual_name,  # Use name as key for both node and edge
+                                'profile_pic': f.get('profile_pic')
+                            })
+                        else:
+                            # Not a mutual friend, skip
+                            continue
                     filtered_network[url] = {
                         'profile_name': data['profile_name'],
                         'profile_pic': data.get('profile_pic'),
