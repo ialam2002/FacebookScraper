@@ -911,6 +911,7 @@ class FacebookScraperApp(ctk.CTk):
 
         try:
             network_data = self.network_data
+            mutual_friend_map = None
             if self.mutual_friends_only_var.get():
                 # Show only main profiles and friends who are connected to more than one profile (mutuals)
                 main_profiles = [url for url, data in network_data.items() if data.get('depth', 0) == 0]
@@ -920,6 +921,7 @@ class FacebookScraperApp(ctk.CTk):
 
                 # Build a mapping from friend url/name to the set of main profiles they are connected to
                 friend_to_profiles = {}
+                url_to_name = {url: data['profile_name'] for url, data in network_data.items()}
                 for url in main_profiles:
                     for f in network_data[url].get('friends', []):
                         key = f.get('url') or f.get('name')
@@ -927,7 +929,7 @@ class FacebookScraperApp(ctk.CTk):
                             continue
                         if key not in friend_to_profiles:
                             friend_to_profiles[key] = set()
-                        friend_to_profiles[key].add(url)
+                        friend_to_profiles[key].add(url_to_name.get(url, url))
 
                 # Keep only friends connected to more than one main profile
                 mutual_friend_keys = {k for k, v in friend_to_profiles.items() if len(v) > 1}
@@ -984,12 +986,18 @@ class FacebookScraperApp(ctk.CTk):
                                     'url': url1,
                                     'profile_pic': network_data[url1].get('profile_pic')
                                 })
+                # Build mutual_friend_map for visualization
+                mutual_friend_map = {k: sorted([url_to_name.get(u, u) for u in friend_to_profiles[k]]) for k in mutual_friend_keys}
                 network_data = filtered_network
 
             layout = self.layout_var.get()
             # Defensive: fallback to default values if entry is empty or invalid
             try:
-                node_size = int(self.node_size_var.get())
+                node_size_str = str(self.node_size_var.get())
+                if not node_size_str or not node_size_str.isdigit():
+                    node_size = 15
+                else:
+                    node_size = int(node_size_str)
             except Exception:
                 node_size = 15
             base_node_size = None  # Not used anymore
@@ -1004,7 +1012,8 @@ class FacebookScraperApp(ctk.CTk):
                 layout=layout,
                 node_size=node_size,
                 edge_width=edge_width,
-                color_scheme=color_scheme
+                color_scheme=color_scheme,
+                mutual_friend_map=mutual_friend_map
             )
 
             num_nodes = self.visualizer.num_nodes

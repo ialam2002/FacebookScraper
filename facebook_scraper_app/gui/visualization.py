@@ -16,7 +16,7 @@ class GraphVisualizer:
         self.num_nodes = 0
         self.num_edges = 0
     
-    def generate_network_graph(self, network_data, layout="spring", node_size=20, edge_width=1, color_scheme="YlGnBu"):
+    def generate_network_graph(self, network_data, layout="spring", node_size=20, edge_width=1, color_scheme="YlGnBu", mutual_friend_map=None):
         G = nx.Graph()
 
         # Add all main profiles
@@ -86,7 +86,13 @@ class GraphVisualizer:
         node_y_friend = []
         node_text_friend = []
         node_urls_friend = []
+        node_x_mutual = []
+        node_y_mutual = []
+        node_text_mutual = []
+        node_urls_mutual = []
+        node_hover_mutual = []
         main_profile_names = set(main_profiles)
+        mutual_keys = set(mutual_friend_map.keys()) if mutual_friend_map else set()
         for node in G.nodes():
             x, y = pos[node]
             url = G.nodes[node].get('url', '')
@@ -95,13 +101,25 @@ class GraphVisualizer:
                 node_y_main.append(y)
                 node_text_main.append(node)
                 node_urls_main.append(url)
+            elif mutual_friend_map and (url in mutual_keys or node in mutual_keys):
+                node_x_mutual.append(x)
+                node_y_mutual.append(y)
+                node_text_mutual.append(node)
+                node_urls_mutual.append(url)
+                # Tooltip: show which main profiles this mutual friend is connected to
+                connected_profiles = mutual_friend_map.get(url) or mutual_friend_map.get(node) or []
+                if connected_profiles:
+                    hover = f"<b>{node}</b><br>Mutual Friend<br>Connected to:<br>" + "<br>".join(connected_profiles) + "<br>Click to open profile"
+                else:
+                    hover = f"<b>{node}</b><br>Mutual Friend<br>Click to open profile"
+                node_hover_mutual.append(hover)
             else:
                 node_x_friend.append(x)
                 node_y_friend.append(y)
                 node_text_friend.append(node)
                 node_urls_friend.append(url)
 
-        # Main profiles: blue, Friends: orange
+        # Main profiles: blue, Mutual friends: green, Friends: orange
         node_trace_main = go.Scatter(
             x=node_x_main, y=node_y_main,
             mode='markers+text',
@@ -114,6 +132,26 @@ class GraphVisualizer:
             marker=dict(
                 size=node_size,
                 color='royalblue',
+                line=dict(width=2, color='DarkSlateGrey'),
+                opacity=0.95),
+            textfont=dict(
+                family="Arial",
+                size=12,
+                color='black'
+            )
+        )
+        node_trace_mutual = go.Scatter(
+            x=node_x_mutual, y=node_y_mutual,
+            mode='markers+text',
+            name='Mutual Friend',
+            text=node_text_mutual,
+            textposition="top center",
+            hoverinfo='text',
+            hovertext=node_hover_mutual,
+            customdata=node_urls_mutual,
+            marker=dict(
+                size=node_size,
+                color='mediumseagreen',
                 line=dict(width=2, color='DarkSlateGrey'),
                 opacity=0.95),
             textfont=dict(
@@ -144,7 +182,7 @@ class GraphVisualizer:
         )
 
         fig = go.Figure(
-            data=[edge_trace, node_trace_main, node_trace_friend],
+            data=[edge_trace, node_trace_main, node_trace_mutual, node_trace_friend],
             layout=go.Layout(
                 title=dict(
                     text=f"<b>Facebook Friends Network</b><br><sub>Layout: {layout}</sub>",
