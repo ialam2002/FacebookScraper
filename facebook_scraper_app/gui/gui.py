@@ -958,8 +958,10 @@ class FacebookScraperApp(ctk.CTk):
                                 break
                         if found:
                             break
-                    filtered_network[key] = {
-                        'profile_name': found.get('name', 'Unknown') if found else key,
+                    # Use the profile_name as the key for mutual friends
+                    mutual_name = found.get('name', 'Unknown') if found else str(key)
+                    filtered_network[mutual_name] = {
+                        'profile_name': mutual_name,
                         'profile_pic': found.get('profile_pic') if found else None,
                         'depth': 1,
                         'friends': []
@@ -986,8 +988,19 @@ class FacebookScraperApp(ctk.CTk):
                                     'url': url1,
                                     'profile_pic': network_data[url1].get('profile_pic')
                                 })
-                # Build mutual_friend_map for visualization
-                mutual_friend_map = {k: sorted([url_to_name.get(u, u) for u in friend_to_profiles[k]]) for k in mutual_friend_keys}
+                # Build mutual_friend_map for visualization (keyed by profile_name)
+                mutual_friend_map = {}
+                for key in mutual_friend_keys:
+                    found = None
+                    for url, data in network_data.items():
+                        for f in data.get('friends', []):
+                            if (f.get('url') == key or f.get('name') == key):
+                                found = f
+                                break
+                        if found:
+                            break
+                    mutual_name = found.get('name', 'Unknown') if found else str(key)
+                    mutual_friend_map[mutual_name] = sorted([url_to_name.get(u, u) for u in friend_to_profiles[key]])
                 network_data = filtered_network
 
             layout = self.layout_var.get()
