@@ -101,13 +101,14 @@ class GraphVisualizer:
                 node_y_main.append(y)
                 node_text_main.append(node)
                 node_urls_main.append(url)
-            elif mutual_friend_map and (url in mutual_keys or node in mutual_keys):
+            elif mutual_friend_map is not None and node in mutual_keys:
+                # If mutual_friend_map is provided, only nodes that are actually mutual friends
                 node_x_mutual.append(x)
                 node_y_mutual.append(y)
                 node_text_mutual.append(node)
                 node_urls_mutual.append(url)
                 # Tooltip: show which main profiles this mutual friend is connected to
-                connected_profiles = mutual_friend_map.get(url) or mutual_friend_map.get(node) or []
+                connected_profiles = mutual_friend_map.get(node, [])
                 if connected_profiles:
                     hover = f"<b>{node}</b><br>Mutual Friend<br>Connected to:<br>" + "<br>".join(connected_profiles) + "<br>Click to open profile"
                 else:

@@ -943,19 +943,10 @@ class FacebookScraperApp(ctk.CTk):
                     for f in data.get('friends', []):
                         is_mutual = (f.get('url') in mutual_friend_keys or f.get('name') in mutual_friend_keys)
                         if is_mutual:
-                            # Find the mutual friend's name
-                            found = None
-                            for url2, data2 in network_data.items():
-                                for f2 in data2.get('friends', []):
-                                    if (f2.get('url') == f.get('url') or f2.get('name') == f.get('name')):
-                                        found = f2
-                                        break
-                                if found:
-                                    break
-                            mutual_name = found.get('name', 'Unknown') if found else (f.get('name') or f.get('url'))
+                            # Keep the original friend data structure for proper node classification
                             filtered_friends.append({
-                                'name': mutual_name,
-                                'url': mutual_name,  # Use name as key for both node and edge
+                                'name': f.get('name'),
+                                'url': f.get('url'),  # Keep original URL for proper classification
                                 'profile_pic': f.get('profile_pic')
                             })
                         else:
@@ -966,25 +957,6 @@ class FacebookScraperApp(ctk.CTk):
                         'profile_pic': data.get('profile_pic'),
                         'depth': data.get('depth', 0),
                         'friends': filtered_friends
-                    }
-                # Add mutual friends as nodes (with their info if available)
-                for key in mutual_friend_keys:
-                    # Try to find info from network_data
-                    found = None
-                    for url, data in network_data.items():
-                        for f in data.get('friends', []):
-                            if (f.get('url') == key or f.get('name') == key):
-                                found = f
-                                break
-                        if found:
-                            break
-                    # Use the profile_name as the key for mutual friends
-                    mutual_name = found.get('name', 'Unknown') if found else str(key)
-                    filtered_network[mutual_name] = {
-                        'profile_name': mutual_name,
-                        'profile_pic': found.get('profile_pic') if found else None,
-                        'depth': 1,
-                        'friends': []
                     }
                 # Add edges between main profiles if they are friends with each other
                 for i, url1 in enumerate(main_profiles):
