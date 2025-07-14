@@ -4,6 +4,9 @@ Main GUI application for the Facebook Scraper.
 Handles tab management, event routing, and main window logic.
 """
 import customtkinter as ctk
+
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("blue")
 from tkinter import messagebox, filedialog, scrolledtext
 import os
 import json
