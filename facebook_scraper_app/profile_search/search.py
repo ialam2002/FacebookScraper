@@ -68,29 +68,35 @@ class ImageProcessor:
         Compare two faces and return similarity score (lower = better match)
         Returns float('inf') if comparison fails
         """
+        import tempfile
+        target_path = None
+        profile_path = None
+        distance = float('inf')
         try:
             # Download profile image
             profile_img = ImageProcessor.load_image(profile_img_url)
-            
-            # Save temporarily (DeepFace works better with file paths)
-            target_path = "temp_target.jpg"
-            profile_path = "temp_profile.jpg"
+
+            # Use tempfile for safer temp file creation
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as target_tmp, \
+                 tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as profile_tmp:
+                target_path = target_tmp.name
+                profile_path = profile_tmp.name
             cv2.imwrite(target_path, target_img)
             cv2.imwrite(profile_path, profile_img)
-            
+
             # Verify both images contain human faces
             if not ImageProcessor.has_human_face(target_path):
                 print("Target image doesn't contain a clear human face")
                 return float('inf')
-                
+
             if not ImageProcessor.has_human_face(profile_path):
                 print("Profile image doesn't contain a clear human face")
                 return float('inf')
-            
+
             # Compare using Facenet
             try:
                 result = DeepFace.verify(
-                    img1_path=target_path, 
+                    img1_path=target_path,
                     img2_path=profile_path,
                     model_name="Facenet",
                     distance_metric="cosine",
@@ -101,23 +107,22 @@ class ImageProcessor:
             except Exception as e:
                 print(f"Error comparing faces: {e}")
                 distance = float('inf')
-            
-            # Clean up temp files
-            if os.path.exists(target_path):
-                os.remove(target_path)
-            if os.path.exists(profile_path):
-                os.remove(profile_path)
-                
             return distance
-        
         except Exception as e:
             print(f"Error in compare_faces: {e}")
-            # Clean up temp files if they exist
-            if 'target_path' in locals() and os.path.exists(target_path):
-                os.remove(target_path)
-            if 'profile_path' in locals() and os.path.exists(profile_path):
-                os.remove(profile_path)
             return float('inf')
+        finally:
+            # Clean up temp files
+            if target_path and os.path.exists(target_path):
+                try:
+                    os.remove(target_path)
+                except Exception as cleanup_e:
+                    print(f"Failed to remove temp file {target_path}: {cleanup_e}")
+            if profile_path and os.path.exists(profile_path):
+                try:
+                    os.remove(profile_path)
+                except Exception as cleanup_e:
+                    print(f"Failed to remove temp file {profile_path}: {cleanup_e}")
 
 
 class FacebookScraper:

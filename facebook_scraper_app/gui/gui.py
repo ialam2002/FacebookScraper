@@ -783,15 +783,9 @@ class FacebookScraperApp(ctk.CTk):
         self.after(0, lambda: self.progress_bar.set(value/100))
     
     def update_results(self, network):
-        self.results_text.delete("1.0", "end")
-        
-        for profile_url, data in network.items():
-            self.results_text.insert("end", f"\n{data['profile_name']} (depth {data['depth']}) has {len(data['friends'])} connections:\n")
-            for i, friend in enumerate(data['friends'][:5], 1):
-                pic_info = f" [Profile Pic: {friend['profile_pic']}]" if friend.get('profile_pic') else ""
-                self.results_text.insert("end", f"  {i}. {friend['name']} ({friend['url']}){pic_info}\n")
-            if len(data['friends']) > 5:
-                self.results_text.insert("end", f"  ... and {len(data['friends']) - 5} more\n")
+        # Use the new ResultsTab display_results method for collapsible/filterable display
+        if hasattr(self.results_tab, 'display_results'):
+            self.results_tab.display_results(network)
     
     def clear_results(self):
         self.results_text.delete("1.0", "end")
