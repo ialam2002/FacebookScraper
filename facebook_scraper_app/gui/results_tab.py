@@ -29,5 +29,3 @@ class ResultsTab:
         load_btn = ctk.CTkButton(buttons_frame, text="Load from JSON", command=self.app.load_from_json)
         load_btn.pack(side="left", padx=5)
 
-        graph_btn = ctk.CTkButton(buttons_frame, text="Generate Graph", command=self.app.generate_plotly_graph)
-        graph_btn.pack(side="left", padx=5)
