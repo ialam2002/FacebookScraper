@@ -745,23 +745,37 @@ class FacebookScraperApp(ctk.CTk):
     def run_scraping(self, urls, depth, max_friends, output_file):
         try:
             self.update_progress("Starting scraping...", 0)
-            
-            network = self.scraper_controller.scrape_friends_network(
-                start_urls=urls,
-                depth=depth,
-                max_friends_per_profile=max_friends,
-                output_file=output_file
-            )
-            
-            if network:
-                self.network_data = network
+            network = {}
+            try:
+                # Custom loop to check for scraping_active and break early
+                for idx, url in enumerate(urls):
+                    if not self.scraping_active:
+                        self.update_progress("Scraping stopped.", 0)
+                        break
+                    # Scrape each profile (simulate original scrape_friends_network logic)
+                    partial_network = self.scraper_controller.scrape_friends_network(
+                        start_urls=[url],
+                        depth=depth,
+                        max_friends_per_profile=max_friends,
+                        output_file=None
+                    )
+                    if partial_network:
+                        network.update(partial_network)
+                    self.update_progress(f"Scraping profile {idx+1}/{len(urls)}", int((idx+1)/len(urls)*100))
+            except Exception as e:
+                self.update_progress(f"Error: {str(e)}", 0)
+                messagebox.showerror("Error", f"Scraping failed: {str(e)}")
+            self.network_data = network if network else None
+            if not self.scraping_active:
+                self.update_progress("Scraping stopped.", 0)
+                messagebox.showinfo("Stopped", "Scraping was stopped by user.")
+            elif network:
                 self.update_results(network)
                 self.update_progress("Scraping completed successfully!", 100)
                 messagebox.showinfo("Success", "Scraping completed successfully!")
             else:
                 self.update_progress("Scraping completed with no results", 100)
                 messagebox.showinfo("Info", "Scraping completed but no data was collected")
-                
         except Exception as e:
             self.update_progress(f"Error: {str(e)}", 0)
             messagebox.showerror("Error", f"Scraping failed: {str(e)}")
@@ -771,8 +785,20 @@ class FacebookScraperApp(ctk.CTk):
     
     def stop_scraping(self):
         self.scraping_active = False
-        self.update_progress("Stopping... Please wait", 0)
-        self.scraper_controller.close()
+        self.update_progress("Scraping stopped.", 0)
+        # Do NOT close the driver here
+        # Save current results if any
+        if self.network_data:
+            output_file = self.output_file_entry.get() if hasattr(self, 'output_file_entry') else None
+            if output_file:
+                try:
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        json.dump(self.network_data, f, ensure_ascii=False, indent=2)
+                    messagebox.showinfo("Results Saved", f"Current results saved to {output_file}")
+                except Exception as e:
+                    messagebox.showerror("Error", f"Failed to save current results: {e}")
+        # Reset controls to allow scraping to be started again
+        self.after(0, self.reset_controls)
     
     def reset_controls(self):
         self.start_button.configure(state="normal")

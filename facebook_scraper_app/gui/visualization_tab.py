@@ -44,7 +44,7 @@ class VisualizationTab:
         layout_label = ctk.CTkLabel(controls_frame, text="Layout:")
         layout_label.pack(side="left", padx=5)
 
-        self.app.layout_var = ctk.StringVar(value="spring")
+        self.app.layout_var = ctk.StringVar(value="Random")
         layouts = ["Spring", "Kamada-Kawai", "Circular", "Random", "Shell", "Spectral"]
         layout_menu = ctk.CTkOptionMenu(controls_frame, values=layouts, variable=self.app.layout_var)
         layout_menu.pack(side="left", padx=5)
