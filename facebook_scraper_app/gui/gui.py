@@ -710,12 +710,12 @@ class FacebookScraperApp(ctk.CTk):
         if not self.scraper_controller.logged_in:
             messagebox.showerror("Error", "Please login first")
             return
-            
+
         urls_text = self.profile_urls_text.get("1.0", "end").strip()
         if not urls_text:
             messagebox.showerror("Error", "Please enter at least one profile URL")
             return
-            
+
         urls = []
         for line in urls_text.split('\n'):
             if ',' in line:
@@ -723,19 +723,24 @@ class FacebookScraperApp(ctk.CTk):
             else:
                 if line.strip():
                     urls.append(line.strip())
-        
+
         depth = int(self.depth_spinbox.get())
-        max_friends = int(self.max_friends_spinbox.get())
+        # Use cap toggle
+        cap_enabled = self.cap_enabled_var.get() if hasattr(self, 'cap_enabled_var') else False
+        if cap_enabled:
+            max_friends = int(self.max_friends_spinbox.get())
+        else:
+            max_friends = 1000000  # Effectively unlimited
         output_file = self.output_file_entry.get()
-        
+
         if not output_file:
             messagebox.showerror("Error", "Please specify an output file")
             return
-            
+
         self.start_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
         self.scraping_active = True
-        
+
         threading.Thread(
             target=self.run_scraping,
             args=(urls, depth, max_friends, output_file),
