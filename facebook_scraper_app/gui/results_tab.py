@@ -3,7 +3,7 @@
 Tab for displaying and exporting scraping results.
 """
 import customtkinter as ctk
-from tkinter import messagebox, filedialog, Canvas, Scrollbar, Entry, StringVar
+from tkinter import messagebox, filedialog, Canvas, Scrollbar, Entry, StringVar, Frame, Label
 
 class ResultsTab:
     def __init__(self, parent, app):
@@ -38,9 +38,20 @@ class ResultsTab:
             results_canvas.configure(scrollregion=results_canvas.bbox("all"))
         self.results_scrollable_frame.bind("<Configure>", _on_frame_configure)
 
+        # More controlled mousewheel scrolling - only scrolls when mouse is over the canvas
         def _on_mousewheel(event):
             results_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        results_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        # Only bind mousewheel when mouse enters the canvas, unbind when it leaves
+        def _bind_mousewheel(event): 
+            results_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        
+        def _unbind_mousewheel(event): 
+            results_canvas.unbind_all("<MouseWheel>")
+        
+        # Set up mousewheel bindings
+        results_canvas.bind("<Enter>", _bind_mousewheel)
+        results_canvas.bind("<Leave>", _unbind_mousewheel)
 
         self.collapsible_sections = []
 
@@ -61,6 +72,81 @@ class ResultsTab:
         for section in getattr(self, 'collapsible_sections', []):
             section['frame'].destroy()
         self.collapsible_sections = []
+        
+    def create_table_header(self, parent, columns):
+        """Create a header row for the Excel-like table."""
+        header_frame = ctk.CTkFrame(parent, fg_color="#1a1a2e")
+        header_frame.pack(fill="x", padx=2, pady=2)
+
+        # Use fixed widths that are larger to fit content better
+        column_widths = [60, 200, 350, 120]  # Increased widths for better visibility
+        
+        for i, col in enumerate(columns):
+            width = column_widths[i] if i < len(column_widths) else 150
+            cell = ctk.CTkLabel(
+                header_frame, 
+                text=col, 
+                font=ctk.CTkFont(size=12, weight="bold"),
+                width=width,
+                anchor="w",
+                fg_color="#1a1a2e",
+                corner_radius=0
+            )
+            cell.pack(side="left", padx=1, pady=1)
+
+    def create_table_row(self, parent, row_data, index):
+        """Create a data row for the Excel-like table."""
+        row_frame = ctk.CTkFrame(parent, fg_color="#2d2d44" if index % 2 == 0 else "#252538")
+        row_frame.pack(fill="x", padx=2, pady=0)
+
+        # Use fixed widths that match the header for consistency
+        column_widths = [60, 200, 350, 120]  # Increased widths for better visibility
+        
+        # Index cell
+        index_cell = ctk.CTkLabel(
+            row_frame,
+            text=str(index),
+            width=column_widths[0],
+            anchor="w",
+            fg_color="transparent",
+            corner_radius=0
+        )
+        index_cell.pack(side="left", padx=1, pady=1)
+
+        # Name cell
+        name_cell = ctk.CTkLabel(
+            row_frame,
+            text=row_data.get('name', 'N/A'),
+            width=column_widths[1],
+            anchor="w",
+            fg_color="transparent",
+            corner_radius=0
+        )
+        name_cell.pack(side="left", padx=1, pady=1)
+
+        # URL cell - don't truncate since we have horizontal scrolling now
+        url = row_data.get('url', 'N/A')
+        url_cell = ctk.CTkLabel(
+            row_frame,
+            text=url,
+            width=column_widths[2],
+            anchor="w",
+            fg_color="transparent",
+            corner_radius=0
+        )
+        url_cell.pack(side="left", padx=1, pady=1)
+
+        # Profile Pic status
+        has_pic = "Yes" if row_data.get('profile_pic') else "No"
+        pic_cell = ctk.CTkLabel(
+            row_frame,
+            text=has_pic,
+            width=column_widths[3],
+            anchor="w",
+            fg_color="transparent",
+            corner_radius=0
+        )
+        pic_cell.pack(side="left", padx=1, pady=1)
 
     def display_results(self, network_data):
         self.clear_collapsible_sections()
@@ -96,11 +182,62 @@ class ResultsTab:
 
         # Details (hidden by default)
         details_frame = ctk.CTkFrame(section_frame, fg_color="#333", corner_radius=6)
-        for i, friend in enumerate(data['friends'][:5], 1):
-            pic_info = f" [Profile Pic: {friend['profile_pic']}]" if friend.get('profile_pic') else ""
-            ctk.CTkLabel(details_frame, text=f"{i}. {friend['name']} ({friend['url']}){pic_info}", anchor="w").pack(fill="x", padx=4, pady=1)
-        if len(data['friends']) > 5:
-            ctk.CTkLabel(details_frame, text=f"... and {len(data['friends']) - 5} more", text_color="#aaa").pack(anchor="w", padx=4, pady=1)
+        
+        # Table container with both horizontal and vertical scrolling
+        table_container = ctk.CTkFrame(details_frame, fg_color="#333")
+        table_container.pack(fill="both", expand=True, padx=5, pady=5)
+        
+        # Create outer frame for both scrollbars
+        outer_frame = Frame(table_container, bg="#333")
+        outer_frame.pack(fill="both", expand=True)
+        
+        # Create a canvas for scrolling
+        table_canvas = Canvas(outer_frame, borderwidth=0, highlightthickness=0, bg="#333")
+        table_frame = ctk.CTkFrame(table_canvas, fg_color="#333")
+        
+        # Add both vertical and horizontal scrollbars
+        v_scrollbar = Scrollbar(outer_frame, orient="vertical", command=table_canvas.yview)
+        h_scrollbar = Scrollbar(outer_frame, orient="horizontal", command=table_canvas.xview)
+        table_canvas.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
+        
+        # Set up the layout with both scrollbars
+        v_scrollbar.pack(side="right", fill="y")
+        h_scrollbar.pack(side="bottom", fill="x")
+        table_canvas.pack(side="left", fill="both", expand=True)
+        
+        # Fixed width for the table frame (wider to fit all columns comfortably)
+        canvas_frame = table_canvas.create_window((0, 0), window=table_frame, anchor="nw")
+        
+        # Configure scrolling region to include full width and height
+        def _on_table_frame_configure(event):
+            # Update the scrollregion to encompass the entire table
+            table_canvas.configure(scrollregion=table_canvas.bbox("all"))
+        
+        table_frame.bind("<Configure>", _on_table_frame_configure)
+        
+        # Create table header
+        self.create_table_header(table_frame, ["#", "Name", "Profile URL", "Has Profile Pic"])
+        
+        # Create table rows (limiting to max 100 rows at a time for performance)
+        friends_to_display = data['friends'][:100]  # Limit to first 100 for performance
+        remaining_count = max(0, len(data['friends']) - 100)
+        
+        for i, friend in enumerate(friends_to_display, 1):
+            self.create_table_row(table_frame, friend, i)
+            
+        # Show message if there are more friends than displayed
+        if remaining_count > 0:
+            more_frame = ctk.CTkFrame(table_frame, fg_color="#333366")
+            more_frame.pack(fill="x", padx=2, pady=5)
+            ctk.CTkLabel(
+                more_frame,
+                text=f"+ {remaining_count} more friends (limited display for performance)",
+                font=ctk.CTkFont(size=12, slant="italic"),
+                text_color="#ccccff"
+            ).pack(pady=3)
+            
+        # Set a fixed height for the table container (increased for better visibility)
+        table_container.configure(height=300)
 
         # Start collapsed
         details_frame.forget()
@@ -108,7 +245,15 @@ class ResultsTab:
         return {'frame': section_frame, 'header': header_frame, 'details': details_frame, 'expand_btn': expand_btn}
 
     def on_search_update(self, *args):
-        # Re-display results with filter
-        if hasattr(self.app, 'network_data') and self.app.network_data:
-            self.display_results(self.app.network_data)
+        # Add a small delay to prevent excessive updates during typing
+        if hasattr(self, '_search_after_id'):
+            self.frame.after_cancel(self._search_after_id)
+        
+        def delayed_search():
+            # Re-display results with filter
+            if hasattr(self.app, 'network_data') and self.app.network_data:
+                self.display_results(self.app.network_data)
+        
+        # Schedule search after 300ms
+        self._search_after_id = self.frame.after(300, delayed_search)
 
