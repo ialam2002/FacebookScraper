@@ -9,14 +9,14 @@ class ConfigTab:
     def __init__(self, parent, app):
         self.app = app
         self.frame = ctk.CTkFrame(parent)
-        self.frame.pack(fill="both", expand=True, padx=10, pady=10)
+        self.frame.pack(fill="both", expand=True, padx=0, pady=0)
         self.build_config_tab()
 
     def build_config_tab(self):
         frame = self.frame
         # Card-like container for login
         card = ctk.CTkFrame(frame, fg_color="#18223a", corner_radius=18)
-        card.pack(pady=40, padx=40, ipadx=10, ipady=10, fill="both", expand=False)
+        card.pack(pady=0, padx=0, ipadx=0, ipady=0, fill="both", expand=True)
 
         # Facebook icon (emoji fallback)
         icon = ctk.CTkLabel(card, text="\U0001F5E8", font=ctk.CTkFont(size=38))

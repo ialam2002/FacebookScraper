@@ -16,7 +16,30 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 2 = only errors, 3 = suppress all
 from splash import show_splash_screen
 
 
-if __name__ == "__main__":
+
+import sys
+import tkinter.messagebox as messagebox
+
+def check_dependencies():
+    chromedriver_path = os.path.join(os.path.dirname(__file__), 'chromedriver', 'chromedriver.exe')
+    if not os.path.isfile(chromedriver_path):
+        messagebox.showerror("Dependency Error", f"chromedriver.exe not found at {chromedriver_path}. Please ensure it is present.")
+        return False
+    return True
+
+def cleanup_splash(splash, splash_root):
+    try:
+        if splash:
+            splash.destroy()
+    except Exception:
+        pass
+    try:
+        if splash_root:
+            splash_root.destroy()
+    except Exception:
+        pass
+
+def startup():
     app = None
     splash_root, splash = show_splash_screen()
 
@@ -35,20 +58,25 @@ if __name__ == "__main__":
     preimport_thread.start()
 
     try:
+        # Dependency check before proceeding
+        if not check_dependencies():
+            cleanup_splash(splash, splash_root)
+            sys.exit(1)
+
         # Wait for pre-import to finish or timeout (max 2 seconds for UI responsiveness)
         preimport_done.wait(timeout=2)
         from gui.gui import FacebookScraperApp
-        if splash:
-            splash.destroy()
-        if splash_root:
-            splash_root.destroy()
+        cleanup_splash(splash, splash_root)
         app = FacebookScraperApp()
         app.mainloop()
     except Exception as e:
-        if splash:
-            splash.destroy()
-        if splash_root:
-            splash_root.destroy()
+        cleanup_splash(splash, splash_root)
         print(f"Application error: {e}")
         if app is not None:
-            app.destroy()
+            try:
+                app.destroy()
+            except Exception:
+                pass
+
+if __name__ == "__main__":
+    startup()
