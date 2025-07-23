@@ -356,7 +356,7 @@ class FaceMatcher:
         target_image: Union[str, np.ndarray],
         full_name: str,
         top_k: int = 3,
-        max_profiles_per_variant: int = 25
+        max_profiles_per_variant: int = 30
     ) -> List[Dict]:
         """
         Find the top matching Facebook profiles for a given face and name

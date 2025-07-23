@@ -299,7 +299,7 @@ class FacebookFriendsScraper:
                     json.dump(network, f, ensure_ascii=False, indent=2)
             
             #delay
-            time.sleep(2)
+            time.sleep(0.5)
         
         return network
     
