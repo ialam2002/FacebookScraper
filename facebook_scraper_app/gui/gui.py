@@ -92,21 +92,21 @@ class FacebookScraperApp(ctk.CTk):
         frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         header = ctk.CTkLabel(frame, text="Facebook Login", font=ctk.CTkFont(size=16, weight="bold"))
-        header.pack(pady=(0, 15))
-        
+        header.grid(row=0, column=0, columnspan=2, pady=(0, 15))
+
         email_label = ctk.CTkLabel(frame, text="Facebook Email:")
-        email_label.pack(anchor="w", padx=10, pady=(0, 5))
+        email_label.grid(row=1, column=0, sticky="e", padx=(10, 5), pady=(0, 8))
         self.email_entry = ctk.CTkEntry(frame, width=400)
-        self.email_entry.pack(padx=10, pady=(0, 10))
-        
+        self.email_entry.grid(row=1, column=1, sticky="w", padx=(0, 10), pady=(0, 8))
+
         password_label = ctk.CTkLabel(frame, text="Facebook Password:")
-        password_label.pack(anchor="w", padx=10, pady=(0, 5))
+        password_label.grid(row=2, column=0, sticky="e", padx=(10, 5), pady=(0, 8))
         self.password_entry = ctk.CTkEntry(frame, width=400, show="*")
-        self.password_entry.pack(padx=10, pady=(0, 15))
-        
+        self.password_entry.grid(row=2, column=1, sticky="w", padx=(0, 10), pady=(0, 8))
+
         login_btn = ctk.CTkButton(frame, text="Test Login", command=self.test_login)
-        login_btn.pack(pady=10)
-        
+        login_btn.grid(row=3, column=0, columnspan=2, pady=10)
+
         self.config_status_label = ctk.CTkLabel(frame, text="Not logged in", text_color="gray")
         self.config_status_label.pack(pady=5)
     

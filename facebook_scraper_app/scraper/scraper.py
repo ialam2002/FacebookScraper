@@ -178,28 +178,42 @@ class FacebookFriendsScraper:
             last_height = self.driver.execute_script("return document.body.scrollHeight")
             no_new_friends_count = 0
             max_no_new_friends = 3  # Stop if no new friends after this many scrolls
-            
+
+            # XPath for the friends container
+            friends_container_xpath = "//div[contains(@class, 'x78zum5') and contains(@class, 'x1q0g3np') and contains(@class, 'x1a02dak') and contains(@class, 'x1qughib')]"
+            friend_link_xpath = ".//a[contains(@href, '/') and .//span[@dir='auto']]"
+
             while True:
                 # Scroll to bottom
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 time.sleep(2)  # Wait to load
-                
+
                 # Calculate new scroll height and compare with last scroll height
                 new_height = self.driver.execute_script("return document.body.scrollHeight")
                 if new_height == last_height:
                     no_new_friends_count += 1
                 else:
                     no_new_friends_count = 0
-                    
+
                 last_height = new_height
-                
+
+                # Find friend elements only within the friends container
+                try:
+                    friends_container = self.driver.find_element(By.XPATH, friends_container_xpath)
+                    friend_elements = friends_container.find_elements(By.XPATH, friend_link_xpath)
+                except Exception:
+                    friend_elements = []
+
                 # Check if we've reached max friends or no new friends are loading
-                friend_elements = self.driver.find_elements(By.XPATH, '//a[contains(@href, "/") and .//span[@dir="auto"]]')
                 if len(friend_elements) >= max_friends or no_new_friends_count >= max_no_new_friends:
                     break
-            
-            # Find all friend link elements
-            friend_elements = self.driver.find_elements(By.XPATH, '//a[contains(@href, "/") and .//span[@dir="auto"]]')
+
+            # Find all friend link elements within the friends container
+            try:
+                friends_container = self.driver.find_element(By.XPATH, friends_container_xpath)
+                friend_elements = friends_container.find_elements(By.XPATH, friend_link_xpath)
+            except Exception:
+                friend_elements = []
             
             # Find all profile picture elements
             profile_pics = self.driver.find_elements(By.XPATH, '//div[contains(@class, "x6s0dn4")]//img[contains(@class, "x1obq294")]')
