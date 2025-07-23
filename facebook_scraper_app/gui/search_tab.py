@@ -414,7 +414,7 @@ class SearchTab:
             self.app.after(0, lambda: self.stop_search_button.configure(state="disabled"))
 
     def display_results(self, results_by_person):
-        # results_by_person: list of (person_name, [results])
+        # Collapsible sections for each person, and filtering by match score
         from PIL import Image, ImageTk
         import requests
         from io import BytesIO
@@ -437,102 +437,149 @@ class SearchTab:
             self._profile_img_refs = []
         self._profile_img_refs.clear()
 
-        for person_name, results in results_by_person:
-            # Header for this person
-            header = ctk.CTkLabel(
-                self.results_container,
-                text=f"Results for: {person_name}",
-                font=ctk.CTkFont(size=16, weight="bold"),
-                fg_color="black",
-                text_color="#00ffcc"
-            )
-            header.pack(anchor="w", padx=10, pady=(10, 2))
+        # Filtering UI
+        filter_frame = ctk.CTkFrame(self.results_container, fg_color="black")
+        filter_frame.pack(fill="x", padx=10, pady=(0, 8))
+        filter_label = ctk.CTkLabel(filter_frame, text="Min. Match Score:", fg_color="black", text_color="white")
+        filter_label.pack(side="left", padx=(0, 5))
+        filter_var = ctk.DoubleVar(value=0.0)
+        filter_entry = ctk.CTkEntry(filter_frame, width=60, textvariable=filter_var)
+        filter_entry.pack(side="left")
 
-            if not results:
-                no_results = ctk.CTkLabel(
-                    self.results_container,
-                    text="No matching profiles found.",
-                    text_color="gray",
-                    fg_color="black"
-                )
-                no_results.pack(pady=10)
-                continue
-
-            for idx, profile in enumerate(results[:5], 1):
-                # Create frame for each result (black background)
-                result_frame = ctk.CTkFrame(self.results_container, fg_color="black", border_width=1, corner_radius=8)
-                result_frame.pack(fill="x", padx=10, pady=8, expand=True)
-
-                # Left frame for image
-                left_frame = ctk.CTkFrame(result_frame, fg_color="black")
-                left_frame.pack(side="left", padx=10, pady=10)
-
-                # Try to load and display profile picture
-                try:
-                    if profile.get('profile_pic'):
-                        response = requests.get(profile['profile_pic'])
-                        img = Image.open(BytesIO(response.content))
-                        img = img.resize((90, 90), Image.Resampling.LANCZOS)
-                        photo = ImageTk.PhotoImage(img)
-                        self._profile_img_refs.append(photo)
-                        img_label = ctk.CTkLabel(left_frame, image=photo, text="", width=90, height=90, fg_color="black")
-                        img_label.pack(padx=5, pady=5)
+        def refresh_results():
+            min_score = filter_var.get()
+            # Remove all person frames except filter_frame
+            for widget in self.results_container.winfo_children():
+                if widget != filter_frame:
+                    widget.destroy()
+            for person_name, results in results_by_person:
+                # Collapsible section
+                section_frame = ctk.CTkFrame(self.results_container, fg_color="#181818", border_width=1, corner_radius=8)
+                section_frame.pack(fill="x", padx=10, pady=6, expand=True)
+                # Header with expand/collapse
+                header_frame = ctk.CTkFrame(section_frame, fg_color="#222")
+                header_frame.pack(fill="x")
+                expanded = ctk.BooleanVar(value=False)
+                def toggle_section(var=expanded, frame=section_frame, content_widgets=[]):
+                    if var.get():
+                        for w in content_widgets:
+                            w.pack(fill="x", padx=0, pady=0)
                     else:
+                        for w in content_widgets:
+                            w.pack_forget()
+                header_label = ctk.CTkLabel(
+                    header_frame,
+                    text=f"Results for: {person_name}",
+                    font=ctk.CTkFont(size=16, weight="bold"),
+                    fg_color="#222",
+                    text_color="#00ffcc"
+                )
+                header_label.pack(side="left", padx=10, pady=4)
+                toggle_btn = ctk.CTkButton(
+                    header_frame,
+                    text="Show" if not expanded.get() else "Hide",
+                    width=60,
+                    command=lambda v=expanded, btn=None: v.set(not v.get())
+                )
+                toggle_btn.pack(side="right", padx=10)
+
+                # Content widgets (results)
+                content_widgets = []
+                filtered_results = []
+                for idx, profile in enumerate(results[:5], 1):
+                    distance = profile.get('distance', float('inf'))
+                    match_score = max(0.0, 1.0 - distance) if distance != float('inf') else 0.0
+                    if match_score < filter_var.get():
+                        continue
+                    filtered_results.append(profile)
+                    result_frame = ctk.CTkFrame(section_frame, fg_color="black", border_width=1, corner_radius=8)
+                    # ...existing code for left_frame, image, info_frame, etc...
+                    left_frame = ctk.CTkFrame(result_frame, fg_color="black")
+                    left_frame.pack(side="left", padx=10, pady=10)
+                    try:
+                        if profile.get('profile_pic'):
+                            response = requests.get(profile['profile_pic'])
+                            img = Image.open(BytesIO(response.content))
+                            img = img.resize((90, 90), Image.Resampling.LANCZOS)
+                            photo = ImageTk.PhotoImage(img)
+                            self._profile_img_refs.append(photo)
+                            img_label = ctk.CTkLabel(left_frame, image=photo, text="", width=90, height=90, fg_color="black")
+                            img_label.pack(padx=5, pady=5)
+                        else:
+                            placeholder = ctk.CTkLabel(left_frame, text="No\nImage", width=90, height=90, fg_color="black", text_color="white")
+                            placeholder.pack(padx=5, pady=5)
+                    except Exception as e:
+                        print(f"Error loading profile image: {e}")
                         placeholder = ctk.CTkLabel(left_frame, text="No\nImage", width=90, height=90, fg_color="black", text_color="white")
                         placeholder.pack(padx=5, pady=5)
-                except Exception as e:
-                    print(f"Error loading profile image: {e}")
-                    placeholder = ctk.CTkLabel(left_frame, text="No\nImage", width=90, height=90, fg_color="black", text_color="white")
-                    placeholder.pack(padx=5, pady=5)
+                    info_frame = ctk.CTkFrame(result_frame, fg_color="black")
+                    info_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+                    name_label = ctk.CTkLabel(
+                        info_frame, 
+                        text=f"Name: {profile.get('name', 'Unknown')}", 
+                        font=ctk.CTkFont(size=15, weight="bold"),
+                        fg_color="black",
+                        text_color="white"
+                    )
+                    name_label.pack(anchor="w", pady=2)
+                    url = profile.get('url', 'N/A')
+                    url_label = ctk.CTkLabel(
+                        info_frame,
+                        text=f"Profile URL: {url}",
+                        text_color="#1a0dab" if url != 'N/A' else "gray",
+                        cursor="hand2" if url != 'N/A' else "arrow",
+                        fg_color="black"
+                    )
+                    url_label.pack(anchor="w", pady=2)
+                    if url != 'N/A':
+                        url_label.bind("<Button-1>", lambda e, url=url: self.app.open_url(url))
+                    score_text = f"Match Score: {match_score:.2f} (Distance: {distance:.2f})" if distance != float('inf') else "Match Score: N/A"
+                    score_label = ctk.CTkLabel(
+                        info_frame,
+                        text=score_text,
+                        font=ctk.CTkFont(size=13),
+                        fg_color="black",
+                        text_color="white"
+                    )
+                    score_label.pack(anchor="w", pady=2)
+                    add_button = ctk.CTkButton(
+                        info_frame,
+                        text="Add to Scraper",
+                        command=lambda url=url: self.app.add_to_scraper(url),
+                        width=140
+                    )
+                    add_button.pack(anchor="w", pady=8)
+                    content_widgets.append(result_frame)
+                # If no results after filtering
+                if not filtered_results:
+                    no_results = ctk.CTkLabel(
+                        section_frame,
+                        text="No matching profiles found.",
+                        text_color="gray",
+                        fg_color="black"
+                    )
+                    content_widgets.append(no_results)
+                # Initially collapsed
+                expanded.set(False)
+                def on_toggle(var=expanded, btn=toggle_btn, cws=content_widgets):
+                    if var.get():
+                        btn.configure(text="Hide")
+                        for w in cws:
+                            w.pack(fill="x", padx=10, pady=4)
+                    else:
+                        btn.configure(text="Show")
+                        for w in cws:
+                            w.pack_forget()
+                expanded.trace_add('write', lambda *args, v=expanded, b=toggle_btn, cws=content_widgets: on_toggle(v, b, cws))
+                # Start collapsed
+                on_toggle(expanded, toggle_btn, content_widgets)
 
-                # Right frame for text info and button
-                info_frame = ctk.CTkFrame(result_frame, fg_color="black")
-                info_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        # Initial render
+        refresh_results()
 
-                # Profile name and URL
-                name_label = ctk.CTkLabel(
-                    info_frame, 
-                    text=f"Name: {profile.get('name', 'Unknown')}", 
-                    font=ctk.CTkFont(size=15, weight="bold"),
-                    fg_color="black",
-                    text_color="white"
-                )
-                name_label.pack(anchor="w", pady=2)
-
-                url = profile.get('url', 'N/A')
-                url_label = ctk.CTkLabel(
-                    info_frame,
-                    text=f"Profile URL: {url}",
-                    text_color="#1a0dab" if url != 'N/A' else "gray",
-                    cursor="hand2" if url != 'N/A' else "arrow",
-                    fg_color="black"
-                )
-                url_label.pack(anchor="w", pady=2)
-                if url != 'N/A':
-                    url_label.bind("<Button-1>", lambda e, url=url: self.app.open_url(url))
-
-                # Similarity score (distance)
-                distance = profile.get('distance', float('inf'))
-                if distance != float('inf'):
-                    match_score = max(0.0, 1.0 - distance)
-                    score_text = f"Match Score: {match_score:.2f} (Distance: {distance:.2f})"
-                else:
-                    score_text = "Match Score: N/A"
-                score_label = ctk.CTkLabel(
-                    info_frame,
-                    text=score_text,
-                    font=ctk.CTkFont(size=13),
-                    fg_color="black",
-                    text_color="white"
-                )
-                score_label.pack(anchor="w", pady=2)
-
-                add_button = ctk.CTkButton(
-                    info_frame,
-                    text="Add to Scraper",
-                    command=lambda url=url: self.app.add_to_scraper(url),
-                    width=140
-                )
-                add_button.pack(anchor="w", pady=8)
+        # Update on filter change
+        def on_filter_change(*args):
+            refresh_results()
+        filter_var.trace_add('write', on_filter_change)
 
         self.search_status.configure(text=f"Search complete. {len(results_by_person)} person(s) processed.", text_color="green")
