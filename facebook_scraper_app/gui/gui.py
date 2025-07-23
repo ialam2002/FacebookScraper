@@ -92,20 +92,26 @@ class FacebookScraperApp(ctk.CTk):
         frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         header = ctk.CTkLabel(frame, text="Facebook Login", font=ctk.CTkFont(size=16, weight="bold"))
-        header.grid(row=0, column=0, columnspan=2, pady=(0, 15))
+        header.pack(pady=(0, 15))
 
-        email_label = ctk.CTkLabel(frame, text="Facebook Email:")
-        email_label.grid(row=1, column=0, sticky="e", padx=(10, 5), pady=(0, 8))
-        self.email_entry = ctk.CTkEntry(frame, width=400)
-        self.email_entry.grid(row=1, column=1, sticky="w", padx=(0, 10), pady=(0, 8))
+        # Email row
+        email_row = ctk.CTkFrame(frame, fg_color="transparent")
+        email_row.pack(fill="x", padx=10, pady=5)
+        email_label = ctk.CTkLabel(email_row, text="Facebook Email:")
+        email_label.pack(side="left")
+        self.email_entry = ctk.CTkEntry(email_row, width=400)
+        self.email_entry.pack(side="left", padx=(8, 0))
 
-        password_label = ctk.CTkLabel(frame, text="Facebook Password:")
-        password_label.grid(row=2, column=0, sticky="e", padx=(10, 5), pady=(0, 8))
-        self.password_entry = ctk.CTkEntry(frame, width=400, show="*")
-        self.password_entry.grid(row=2, column=1, sticky="w", padx=(0, 10), pady=(0, 8))
+        # Password row
+        password_row = ctk.CTkFrame(frame, fg_color="transparent")
+        password_row.pack(fill="x", padx=10, pady=5)
+        password_label = ctk.CTkLabel(password_row, text="Facebook Password:")
+        password_label.pack(side="left")
+        self.password_entry = ctk.CTkEntry(password_row, width=400, show="*")
+        self.password_entry.pack(side="left", padx=(8, 0))
 
         login_btn = ctk.CTkButton(frame, text="Test Login", command=self.test_login)
-        login_btn.grid(row=3, column=0, columnspan=2, pady=10)
+        login_btn.pack(pady=10)
 
         self.config_status_label = ctk.CTkLabel(frame, text="Not logged in", text_color="gray")
         self.config_status_label.pack(pady=5)

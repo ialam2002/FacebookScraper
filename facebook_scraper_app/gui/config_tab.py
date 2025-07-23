@@ -40,9 +40,12 @@ class ConfigTab:
 
     def build_config_tab(self):
         frame = self.frame
-        # Card-like container for login
+        # Center everything in the frame
+        frame.grid_rowconfigure(0, weight=1)
+        frame.grid_columnconfigure(0, weight=1)
+        # Card-like container for login, centered
         card = ctk.CTkFrame(frame, fg_color="#18223a", corner_radius=18)
-        card.pack(pady=0, padx=0, ipadx=0, ipady=0, fill="both", expand=True)
+        card.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
 
         # Facebook icon (emoji fallback)
         icon = ctk.CTkLabel(card, text="\U0001F5E8", font=ctk.CTkFont(size=38))
@@ -52,20 +55,24 @@ class ConfigTab:
         header = ctk.CTkLabel(card, text="Sign in to Facebook", font=ctk.CTkFont(size=22, weight="bold"), text_color="#b8c7e0")
         header.pack(pady=(0, 18))
 
-        # Email
-        email_label = ctk.CTkLabel(card, text="Email", font=ctk.CTkFont(size=14), text_color="#b8c7e0")
-        email_label.pack(anchor="w", padx=18, pady=(0, 2))
-        self.app.email_entry = ctk.CTkEntry(card, width=320, height=36, font=ctk.CTkFont(size=14), fg_color="#232b3e", border_color="#274472", text_color="#b8c7e0")
-        self.app.email_entry.pack(padx=18, pady=(0, 12))
+        # Email row (centered, minimal gap)
+        email_row = ctk.CTkFrame(card, fg_color="transparent")
+        email_row.pack(anchor="center", pady=(0, 4))
+        email_label = ctk.CTkLabel(email_row, text="Email", font=ctk.CTkFont(size=14), text_color="#b8c7e0")
+        email_label.pack(side="left")
+        self.app.email_entry = ctk.CTkEntry(email_row, width=320, height=36, font=ctk.CTkFont(size=14), fg_color="#232b3e", border_color="#274472", text_color="#b8c7e0")
+        self.app.email_entry.pack(side="left", padx=(8, 0))
         # Autofill email if saved
         if hasattr(self.app, "_saved_email"):
             self.app.email_entry.insert(0, self.app._saved_email)
 
-        # Password
-        password_label = ctk.CTkLabel(card, text="Password", font=ctk.CTkFont(size=14), text_color="#b8c7e0")
-        password_label.pack(anchor="w", padx=18, pady=(0, 2))
-        self.app.password_entry = ctk.CTkEntry(card, width=320, height=36, show="*", font=ctk.CTkFont(size=14), fg_color="#232b3e", border_color="#274472", text_color="#b8c7e0")
-        self.app.password_entry.pack(padx=18, pady=(0, 18))
+        # Password row (centered, minimal gap)
+        password_row = ctk.CTkFrame(card, fg_color="transparent")
+        password_row.pack(anchor="center", pady=(0, 12))
+        password_label = ctk.CTkLabel(password_row, text="Password", font=ctk.CTkFont(size=14), text_color="#b8c7e0")
+        password_label.pack(side="left")
+        self.app.password_entry = ctk.CTkEntry(password_row, width=320, height=36, show="*", font=ctk.CTkFont(size=14), fg_color="#232b3e", border_color="#274472", text_color="#b8c7e0")
+        self.app.password_entry.pack(side="left", padx=(8, 0))
         # Autofill password if saved
         if hasattr(self.app, "_saved_password"):
             self.app.password_entry.insert(0, self.app._saved_password)
