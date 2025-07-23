@@ -762,7 +762,7 @@ class FacebookScraperApp(ctk.CTk):
                         start_urls=[url],
                         depth=depth,
                         max_friends_per_profile=max_friends,
-                        output_file=None
+                        output_file=output_file
                     )
                     if partial_network:
                         network.update(partial_network)
