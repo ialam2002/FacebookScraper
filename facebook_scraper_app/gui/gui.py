@@ -41,7 +41,7 @@ class FacebookScraperApp(ctk.CTk):
         self.visualizer = GraphVisualizer()
         self.scraping_active = False
         self.network_data = None
-        self.plotly_html_path = None
+        self.pyvis_html_path = None
 
         self.notebook = ctk.CTkTabview(self)
         self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
@@ -70,21 +70,6 @@ class FacebookScraperApp(ctk.CTk):
         except Exception:
             pass
         self.destroy()
-    def create_widgets(self):
-        self.notebook = ctk.CTkTabview(self)
-        self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        self.notebook.add("Configuration")
-        self.notebook.add("Search")
-        self.notebook.add("Scraping")
-        self.notebook.add("Results")
-        self.notebook.add("Visualization")
-        
-        self.build_config_tab()
-        self.build_search_tab()
-        self.build_scraping_tab()
-        self.build_results_tab()
-        self.build_visualization_tab()
     
     def build_config_tab(self):
         tab = self.notebook.tab("Configuration")
@@ -192,7 +177,7 @@ class FacebookScraperApp(ctk.CTk):
         load_btn = ctk.CTkButton(buttons_frame, text="Load from JSON", command=self.load_from_json)
         load_btn.pack(side="left", padx=5)
         
-        graph_btn = ctk.CTkButton(buttons_frame, text="Generate Graph", command=self.generate_plotly_graph)
+        graph_btn = ctk.CTkButton(buttons_frame, text="Generate Graph", command=self.generate_pyvis_graph)
         graph_btn.pack(side="left", padx=5)
     
     def build_visualization_tab(self):
@@ -243,13 +228,13 @@ class FacebookScraperApp(ctk.CTk):
         action_frame = ctk.CTkFrame(frame, fg_color="transparent")
         action_frame.pack(fill="x", pady=5)
         
-        gen_btn = ctk.CTkButton(action_frame, text="Generate Graph", command=self.generate_plotly_graph)
+        gen_btn = ctk.CTkButton(action_frame, text="Generate Graph", command=self.generate_pyvis_graph)
         gen_btn.pack(side="left", padx=5)
-        
-        save_btn = ctk.CTkButton(action_frame, text="Save as HTML", command=self.save_plotly_graph)
+
+        save_btn = ctk.CTkButton(action_frame, text="Save as HTML", command=self.save_pyvis_graph)
         save_btn.pack(side="left", padx=5)
-        
-        open_btn = ctk.CTkButton(action_frame, text="Open in Browser", command=self.open_plotly_in_browser)
+
+        open_btn = ctk.CTkButton(action_frame, text="Open in Browser", command=self.open_pyvis_in_browser)
         open_btn.pack(side="left", padx=5)
         
         self.visualization_frame = ctk.CTkFrame(frame, border_width=1)
@@ -933,7 +918,7 @@ class FacebookScraperApp(ctk.CTk):
             })
         return network
     
-    def generate_plotly_graph(self):
+    def generate_pyvis_graph(self):
         import networkx as nx
         if not self.network_data:
             messagebox.showwarning("Warning", "No network data available. Please scrape data first or load from JSON.")
@@ -1046,7 +1031,7 @@ class FacebookScraperApp(ctk.CTk):
                 edge_width = 1
             color_scheme = self.color_scheme_var.get() if hasattr(self, 'color_scheme_var') else "YlGnBu"
 
-            self.plotly_html_path = self.visualizer.generate_network_graph(
+            self.pyvis_html_path = self.visualizer.generate_network_graph(
                 network_data,
                 layout=layout,
                 node_size=node_size,
@@ -1065,18 +1050,18 @@ class FacebookScraperApp(ctk.CTk):
             )
 
         except Exception as e:
-            messagebox.showerror("Error", f"Failed to generate Plotly graph: {str(e)}")
+            messagebox.showerror("Error", f"Failed to generate PyVis graph: {str(e)}")
         finally:
             self.configure(cursor="")
             self.update()
     
-    def save_plotly_graph(self):
-        if not hasattr(self.visualizer, 'plotly_html_path') or not self.visualizer.plotly_html_path:
+    def save_pyvis_graph(self):
+        if not hasattr(self.visualizer, 'pyvis_html_path') or not self.visualizer.pyvis_html_path:
             messagebox.showwarning("Warning", "No graph to save. Please generate a graph first.")
             return
 
         save_path = filedialog.asksaveasfilename(
-            title="Save Plotly Graph",
+            title="Save PyVis Graph",
             defaultextension=".html",
             filetypes=[("HTML files", "*.html"), ("All files", "*.*")]
         )
@@ -1088,8 +1073,8 @@ class FacebookScraperApp(ctk.CTk):
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to save graph: {str(e)}")
 
-    def open_plotly_in_browser(self):
-        if hasattr(self.visualizer, 'plotly_html_path') and self.visualizer.plotly_html_path:
+    def open_pyvis_in_browser(self):
+        if hasattr(self.visualizer, 'pyvis_html_path') and self.visualizer.pyvis_html_path:
             self.visualizer.open_in_browser()
         else:
             messagebox.showwarning("Warning", "No graph to open. Please generate a graph first.")

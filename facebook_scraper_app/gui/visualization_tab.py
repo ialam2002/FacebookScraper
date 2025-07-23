@@ -5,29 +5,7 @@ Tab for configuring and displaying the network graph visualization.
 import customtkinter as ctk
 
 class VisualizationTab:
-    def export_plotly_pdf(self):
-        import tkinter.filedialog as filedialog
-        import tkinter.messagebox as messagebox
-        try:
-            file_path = filedialog.asksaveasfilename(
-                defaultextension=".pdf",
-                filetypes=[("PDF files", "*.pdf")],
-                title="Export Graph as PDF"
-            )
-            if file_path:
-                # Ensure the graph is generated before exporting
-                if not hasattr(self.graph_visualizer, '_last_fig') or self.graph_visualizer._last_fig is None:
-                    messagebox.showerror("Error", "Please generate the graph before exporting to PDF.")
-                    return
-                try:
-                    import kaleido  # noqa: F401
-                except ImportError:
-                    messagebox.showerror("Error", "The 'kaleido' package is required for PDF export. Please install it with 'pip install -U kaleido'.")
-                    return
-                self.graph_visualizer.export_pdf(file_path)
-                messagebox.showinfo("Exported", f"Graph exported as PDF to:\n{file_path}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Failed to export PDF: {e}")
+
     def __init__(self, parent, app):
         from gui.visualization import GraphVisualizer
         self.app = app
@@ -80,17 +58,13 @@ class VisualizationTab:
         action_frame = ctk.CTkFrame(frame, fg_color="transparent")
         action_frame.pack(fill="x", pady=5)
 
-        gen_btn = ctk.CTkButton(action_frame, text="Generate Graph", command=self.app.generate_plotly_graph)
+        gen_btn = ctk.CTkButton(action_frame, text="Generate Graph", command=self.app.generate_pyvis_graph)
         gen_btn.pack(side="left", padx=5)
 
-
-        save_btn = ctk.CTkButton(action_frame, text="Save as HTML", command=self.app.save_plotly_graph)
+        save_btn = ctk.CTkButton(action_frame, text="Save as HTML", command=self.app.save_pyvis_graph)
         save_btn.pack(side="left", padx=5)
 
-        pdf_btn = ctk.CTkButton(action_frame, text="Export as PDF", command=self.export_plotly_pdf)
-        pdf_btn.pack(side="left", padx=5)
-
-        open_btn = ctk.CTkButton(action_frame, text="Open in Browser", command=self.app.open_plotly_in_browser)
+        open_btn = ctk.CTkButton(action_frame, text="Open in Browser", command=self.app.open_pyvis_in_browser)
         open_btn.pack(side="left", padx=5)
 
         self.app.visualization_frame = ctk.CTkFrame(frame, border_width=1)
@@ -98,7 +72,7 @@ class VisualizationTab:
 
         self.app.info_label = ctk.CTkLabel(
             self.app.visualization_frame,
-            text="Graph visualization will be generated as an interactive HTML file.\n"
+            text="Graph visualization will be generated as an interactive HTML file using PyVis.\n"
                  "Configure the parameters above and click 'Generate Graph' to create the visualization.",
             wraplength=500,
             justify="center"
