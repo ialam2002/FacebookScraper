@@ -63,8 +63,14 @@ class GraphVisualizer:
                 title += f"<br><img src='{data['profile_pic']}' width='60'>"
             color = "#3b5998" if node in main_profiles else ("#43a047" if mutual_friend_map and node in mutual_friend_map else "#ff9800")
             net.add_node(node, label=node, title=title, color=color, shape="dot", size=node_size)
+        # Determine if this is a mutual friends only graph
+        is_mutual_only = mutual_friend_map is not None
         for source, target in G.edges():
-            net.add_edge(source, target, width=edge_width)
+            # If mutual only and both nodes are main profiles, make edge red
+            if is_mutual_only and source in main_profiles and target in main_profiles:
+                net.add_edge(source, target, width=edge_width, color='red')
+            else:
+                net.add_edge(source, target, width=edge_width)
         temp_dir = tempfile.mkdtemp()
         self.pyvis_html_path = os.path.join(temp_dir, "pyvis_graph.html")
         net.write_html(self.pyvis_html_path)
