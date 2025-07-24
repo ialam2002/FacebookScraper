@@ -68,7 +68,7 @@ class GraphVisualizer:
         temp_dir = tempfile.mkdtemp()
         self.pyvis_html_path = os.path.join(temp_dir, "pyvis_graph.html")
         net.write_html(self.pyvis_html_path)
-        # Inject legend into the HTML file
+        # Inject legend and JS to disable physics after 20s into the HTML file
         legend_html = '''\
 <div id="pyvis-legend" style="position:absolute;top:20px;right:20px;z-index:9999;background:rgba(255,255,255,0.95);border:1px solid #bbb;padding:12px 18px;border-radius:8px;box-shadow:0 2px 8px #aaa;font-size:15px;">
   <b>Legend</b><br>
@@ -77,11 +77,20 @@ class GraphVisualizer:
   <div style="margin-top:4px;display:flex;align-items:center;"><span style="display:inline-block;width:18px;height:18px;background:#ff9800;border-radius:50%;margin-right:8px;border:2px solid #222;"></span>Friend</div>
 </div>
         '''
-        # Insert legend before </body>
+        js_disable_physics = '''<script type="text/javascript">
+if (typeof network !== 'undefined') {
+  network.once('stabilizationIterationsDone', function() {
+    setTimeout(function() {
+      network.setOptions({physics: false});
+    }, 20000);
+  });
+}
+</script>'''
+        # Insert legend and JS before </body>
         with open(self.pyvis_html_path, 'r', encoding='utf-8') as f:
             html = f.read()
         if '</body>' in html:
-            html = html.replace('</body>', legend_html + '\n</body>')
+            html = html.replace('</body>', legend_html + '\n' + js_disable_physics + '\n</body>')
             with open(self.pyvis_html_path, 'w', encoding='utf-8') as f:
                 f.write(html)
         return self.pyvis_html_path

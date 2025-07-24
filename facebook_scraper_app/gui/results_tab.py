@@ -158,11 +158,11 @@ class ResultsTab:
             self.collapsible_sections.append(section)
 
     def create_collapsible_section(self, data, profile_url):
-        section_frame = ctk.CTkFrame(self.results_scrollable_frame, fg_color="#222", corner_radius=8)
+        section_frame = ctk.CTkFrame(self.results_scrollable_frame, fg_color="#222", corner_radius=8, width=1100)
         section_frame.pack(fill="x", pady=4, padx=4, anchor="n")
 
         # Header with expand/collapse button
-        header_frame = ctk.CTkFrame(section_frame, fg_color="transparent")
+        header_frame = ctk.CTkFrame(section_frame, fg_color="transparent", width=1100)
         header_frame.pack(fill="x")
         expanded = [False]
 
@@ -181,7 +181,7 @@ class ResultsTab:
         ctk.CTkLabel(header_frame, text=f"{len(data['friends'])} friends", text_color="#aaa").pack(side="left", padx=8)
 
         # Details (hidden by default)
-        details_frame = ctk.CTkFrame(section_frame, fg_color="#333", corner_radius=6)
+        details_frame = ctk.CTkFrame(section_frame, fg_color="#333", corner_radius=6, width=1100)
         
         # Table container with both horizontal and vertical scrolling
         table_container = ctk.CTkFrame(details_frame, fg_color="#333")
