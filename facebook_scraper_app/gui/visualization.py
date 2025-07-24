@@ -66,9 +66,9 @@ class GraphVisualizer:
         # Determine if this is a mutual friends only graph
         is_mutual_only = mutual_friend_map is not None
         for source, target in G.edges():
-            # If mutual only and both nodes are main profiles, make edge red
+            # If mutual only and both nodes are main profiles, make edge red and thicker
             if is_mutual_only and source in main_profiles and target in main_profiles:
-                net.add_edge(source, target, width=edge_width, color='red')
+                net.add_edge(source, target, width=edge_width * 7.5, color='red')
             else:
                 net.add_edge(source, target, width=edge_width)
         temp_dir = tempfile.mkdtemp()
