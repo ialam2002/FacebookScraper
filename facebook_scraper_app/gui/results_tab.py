@@ -62,11 +62,60 @@ class ResultsTab:
         clear_btn = ctk.CTkButton(buttons_frame, text="Clear Results", command=self.app.clear_results)
         clear_btn.pack(side="left", padx=5)
 
-        export_btn = ctk.CTkButton(buttons_frame, text="Export Results", command=self.app.export_results)
+
+        export_btn = ctk.CTkButton(buttons_frame, text="Export Results to JSON", command=self.app.export_results)
         export_btn.pack(side="left", padx=5)
+
+        export_excel_btn = ctk.CTkButton(buttons_frame, text="Export to Excel", command=self.export_to_excel)
+        export_excel_btn.pack(side="left", padx=5)
 
         load_btn = ctk.CTkButton(buttons_frame, text="Load from JSON", command=self.app.load_from_json)
         load_btn.pack(side="left", padx=5)
+    def export_to_excel(self):
+        import openpyxl
+        from openpyxl.utils import get_column_letter
+        from tkinter import filedialog, messagebox
+        network_data = getattr(self.app, 'network_data', None)
+        if not network_data:
+            messagebox.showwarning("No Data", "No network data to export.")
+            return
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel Files", "*.xlsx")],
+            title="Save Excel File"
+        )
+        if not file_path:
+            return
+        wb = openpyxl.Workbook()
+        # Remove the default sheet
+        wb.remove(wb.active)
+        for profile_url, data in network_data.items():
+            ws = wb.create_sheet(title=data['profile_name'][:31])  # Excel sheet names max 31 chars
+            ws.append(["#", "Name", "Profile URL", "Has Profile Pic", "Profile Pic URL"])
+            for i, friend in enumerate(data.get('friends', []), 1):
+                ws.append([
+                    i,
+                    friend.get('name', 'N/A'),
+                    friend.get('url', 'N/A'),
+                    "Yes" if friend.get('profile_pic') else "No",
+                    friend.get('profile_pic', '')
+                ])
+            # Auto-size columns
+            for col in ws.columns:
+                max_length = 0
+                col_letter = get_column_letter(col[0].column)
+                for cell in col:
+                    try:
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+                    except Exception:
+                        pass
+                ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
+        try:
+            wb.save(file_path)
+            messagebox.showinfo("Export Successful", f"Results exported to {file_path}")
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"Could not save Excel file: {e}")
 
     def clear_collapsible_sections(self):
         for section in getattr(self, 'collapsible_sections', []):
