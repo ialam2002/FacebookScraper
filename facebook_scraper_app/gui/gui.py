@@ -26,11 +26,10 @@ import requests
 import io
 import csv
 
+
 class FacebookScraperApp(ctk.CTk):
     def display_results(self, results):
-        # Forward results to the SearchTab's display_results method
         self.search_tab.display_results(results)
-
 
     def __init__(self):
         super().__init__()
@@ -42,6 +41,8 @@ class FacebookScraperApp(ctk.CTk):
         self.scraping_active = False
         self.network_data = None
         self.pyvis_html_path = None
+        # Mapping: person_id (e.g. name) -> list of profile URLs
+        self.person_to_profiles = {}  # <-- NEW
 
         self.notebook = ctk.CTkTabview(self)
         self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
@@ -1037,7 +1038,8 @@ class FacebookScraperApp(ctk.CTk):
                 node_size=node_size,
                 edge_width=edge_width,
                 color_scheme=color_scheme,
-                mutual_friend_map=mutual_friend_map
+                mutual_friend_map=mutual_friend_map,
+                person_to_profiles=getattr(self, 'person_to_profiles', None)
             )
 
             num_nodes = self.visualizer.num_nodes
@@ -1079,10 +1081,9 @@ class FacebookScraperApp(ctk.CTk):
         else:
             messagebox.showwarning("Warning", "No graph to open. Please generate a graph first.")
 
-    def add_to_scraper(self, url):
-        """Add the profile URL to the scraping list (Scraping tab)"""
+    def add_to_scraper(self, url, person_id=None):
+        """Add the profile URL to the scraping list (Scraping tab), and track which person it belongs to."""
         if hasattr(self, 'profile_urls_text') and url:
-            # Get current URLs, split by line or comma, and add if not present
             current_urls = self.profile_urls_text.get("1.0", "end-1c").strip()
             urls = set([u.strip() for u in current_urls.replace(',', '\n').split('\n') if u.strip()])
             if url not in urls:
@@ -1093,6 +1094,12 @@ class FacebookScraperApp(ctk.CTk):
                 messagebox.showinfo("Success", "Profile added to scraping list!")
             else:
                 messagebox.showinfo("Info", "Profile already in scraping list.")
+            # Track which person this profile belongs to
+            if person_id:
+                if person_id not in self.person_to_profiles:
+                    self.person_to_profiles[person_id] = []
+                if url not in self.person_to_profiles[person_id]:
+                    self.person_to_profiles[person_id].append(url)
             # Switch to Scraping tab
             if hasattr(self, 'notebook'):
                 self.notebook.set("Scraping")

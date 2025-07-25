@@ -72,6 +72,68 @@ class ResultsTab:
         load_btn = ctk.CTkButton(buttons_frame, text="Load from JSON", command=self.app.load_from_json)
         load_btn.pack(side="left", padx=5)
     def export_to_excel(self):
+        # Merge profiles before export, grouped by person
+        from gui.merge_utils import merge_profiles
+        merged = merge_profiles(getattr(self.app, 'network_data', None), getattr(self.app, 'person_to_profiles', None))
+        if not merged:
+            from tkinter import messagebox
+            messagebox.showwarning("No Data", "No network data to export.")
+            return
+        # Use the main profile URL as the key for each merged profile
+        network_data = {}
+        for person_id, data in merged.items():
+            main_url = None
+            # Find the profile_url with the most friends
+            if 'profile_urls' in data and data['profile_urls']:
+                max_friends = -1
+                for url in data['profile_urls']:
+                    friends_count = len(getattr(self.app, 'network_data', {}).get(url, {}).get('friends', []))
+                    if friends_count > max_friends:
+                        main_url = url
+                        max_friends = friends_count
+            if not main_url:
+                main_url = data['profile_urls'][0] if 'profile_urls' in data and data['profile_urls'] else person_id
+            network_data[main_url] = {**data, 'main_profile_url': main_url}
+        import openpyxl
+        from openpyxl.utils import get_column_letter
+        from tkinter import filedialog, messagebox
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel Files", "*.xlsx")],
+            title="Save Excel File"
+        )
+        if not file_path:
+            return
+        wb = openpyxl.Workbook()
+        # Remove the default sheet
+        wb.remove(wb.active)
+        for profile_url, data in network_data.items():
+            ws = wb.create_sheet(title=data['profile_name'][:31])  # Excel sheet names max 31 chars
+            ws.append(["#", "Name", "Profile URL", "Has Profile Pic", "Profile Pic URL"])
+            for i, friend in enumerate(data.get('friends', []), 1):
+                ws.append([
+                    i,
+                    friend.get('name', 'N/A'),
+                    friend.get('url', 'N/A'),
+                    "Yes" if friend.get('profile_pic') else "No",
+                    friend.get('profile_pic', '')
+                ])
+            # Auto-size columns
+            for col in ws.columns:
+                max_length = 0
+                col_letter = get_column_letter(col[0].column)
+                for cell in col:
+                    try:
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+                    except Exception:
+                        pass
+                ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
+        try:
+            wb.save(file_path)
+            messagebox.showinfo("Export Successful", f"Results exported to {file_path}")
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"Could not save Excel file: {e}")
         import openpyxl
         from openpyxl.utils import get_column_letter
         from tkinter import filedialog, messagebox
@@ -119,7 +181,10 @@ class ResultsTab:
 
     def clear_collapsible_sections(self):
         for section in getattr(self, 'collapsible_sections', []):
-            section['frame'].destroy()
+            try:
+                section['frame'].destroy()
+            except Exception:
+                pass
         self.collapsible_sections = []
         
     def create_table_header(self, parent, columns):
@@ -198,15 +263,32 @@ class ResultsTab:
         pic_cell.pack(side="left", padx=1, pady=1)
 
     def display_results(self, network_data):
+        from gui.merge_utils import merge_profiles
+        merged = merge_profiles(network_data, getattr(self.app, 'person_to_profiles', None))
+        # Use the main profile URL as the key for each merged profile
+        merged_data = {}
+        for person_id, data in merged.items():
+            main_url = None
+            if 'profile_urls' in data and data['profile_urls']:
+                max_friends = -1
+                for url in data['profile_urls']:
+                    friends_count = len(network_data.get(url, {}).get('friends', []))
+                    if friends_count > max_friends:
+                        main_url = url
+                        max_friends = friends_count
+            if not main_url:
+                main_url = data['profile_urls'][0] if 'profile_urls' in data and data['profile_urls'] else person_id
+            merged_data[main_url] = {**data, 'main_profile_url': main_url}
         self.clear_collapsible_sections()
         search_term = self.search_var.get().lower() if hasattr(self, 'search_var') else ""
-        for profile_url, data in network_data.items():
+        for main_url, data in merged_data.items():
             if search_term and search_term not in data['profile_name'].lower():
                 continue
-            section = self.create_collapsible_section(data, profile_url)
+            section = self.create_collapsible_section(data, main_url)
             self.collapsible_sections.append(section)
 
-    def create_collapsible_section(self, data, profile_url):
+
+    def create_collapsible_section(self, data, main_url):
         section_frame = ctk.CTkFrame(self.results_scrollable_frame, fg_color="#222", corner_radius=8, width=1100)
         section_frame.pack(fill="x", pady=4, padx=4, anchor="n")
 
@@ -226,7 +308,18 @@ class ResultsTab:
 
         expand_btn = ctk.CTkButton(header_frame, text="+", width=28, command=toggle)
         expand_btn.pack(side="left", padx=(2, 6), pady=2)
-        ctk.CTkLabel(header_frame, text=f"{data['profile_name']} (depth {data['depth']})", font=ctk.CTkFont(size=14, weight="bold")).pack(side="left")
+        # Show main profile name and URL in header
+        name = data.get('profile_name', 'Unknown')
+        url = data.get('main_profile_url', main_url)
+        ctk.CTkLabel(header_frame, text=f"{name}", font=ctk.CTkFont(size=14, weight="bold"), cursor="hand2", text_color="#00bfff").pack(side="left")
+        if url and url != 'N/A':
+            def open_url(event, url=url):
+                import webbrowser
+                webbrowser.open(url)
+            label = ctk.CTkLabel(header_frame, text=f"  [Open Profile]  ", text_color="#1a0dab", cursor="hand2")
+            label.pack(side="left")
+            label.bind("<Button-1>", open_url)
+        ctk.CTkLabel(header_frame, text=f"(depth {data['depth']})", text_color="#aaa").pack(side="left", padx=4)
         ctk.CTkLabel(header_frame, text=f"{len(data['friends'])} friends", text_color="#aaa").pack(side="left", padx=8)
 
         # Details (hidden by default)

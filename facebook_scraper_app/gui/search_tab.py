@@ -542,10 +542,11 @@ class SearchTab:
                         text_color="white"
                     )
                     score_label.pack(anchor="w", pady=2)
+                    # Pass person_id (person_name) to add_to_scraper
                     add_button = ctk.CTkButton(
                         info_frame,
                         text="Add to Scraper",
-                        command=lambda url=url: self.app.add_to_scraper(url),
+                        command=lambda url=url, person_name=person_name: self.app.add_to_scraper(url, person_id=person_name),
                         width=140
                     )
                     add_button.pack(anchor="w", pady=8)

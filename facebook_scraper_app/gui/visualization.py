@@ -15,24 +15,31 @@ class GraphVisualizer:
         self.num_nodes = 0
         self.num_edges = 0
     
-    def generate_network_graph(self, network_data, layout="spring", node_size=20, edge_width=1, color_scheme="YlGnBu", mutual_friend_map=None):
+
+    def generate_network_graph(self, network_data, layout="spring", node_size=20, edge_width=1, color_scheme="YlGnBu", mutual_friend_map=None, person_to_profiles=None):
+        # Merge profiles before visualization, grouped by person
+        try:
+            from gui.merge_utils import merge_profiles
+            merged_data = merge_profiles(network_data, person_to_profiles)
+        except Exception:
+            merged_data = network_data
         G = nx.Graph()
 
-        # Add all main profiles
+        # Add all main profiles (one per person)
         main_profiles = set()
-        for profile_url, data in network_data.items():
+        for person_id, data in merged_data.items():
             G.add_node(data['profile_name'], 
                      depth=data['depth'], 
-                     url=profile_url,
+                     url=data.get('profile_urls', [None])[0] or '',
                      profile_pic=data.get('profile_pic'))
             main_profiles.add(data['profile_name'])
 
         # Add friends and edges
-        for profile_url, data in network_data.items():
+        for person_id, data in merged_data.items():
             for friend in data['friends']:
                 G.add_node(friend['name'], 
                          depth=data['depth'] + 1, 
-                         url=friend['url'],
+                         url=friend.get('url'),
                          profile_pic=friend.get('profile_pic'))
                 G.add_edge(data['profile_name'], friend['name'])
 
