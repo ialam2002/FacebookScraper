@@ -18,6 +18,7 @@ from gui.visualization import GraphVisualizer
 from gui.config_tab import ConfigTab
 from gui.search_tab import SearchTab
 from gui.scraping_tab import ScrapingTab
+from gui.post_scraper_tab import PostScraperTab  # New import
 from gui.results_tab import ResultsTab
 from gui.visualization_tab import VisualizationTab
 from profile_search.search import FaceMatcher, ImageProcessor
@@ -51,6 +52,7 @@ class FacebookScraperApp(ctk.CTk):
         self.notebook.add("Configuration")
         self.notebook.add("Search")
         self.notebook.add("Scraping")
+        self.notebook.add("Post Scraper")  # New tab
         self.notebook.add("Results")
         self.notebook.add("Visualization")
 
@@ -58,6 +60,7 @@ class FacebookScraperApp(ctk.CTk):
         self.config_tab = ConfigTab(self.notebook.tab("Configuration"), self)
         self.search_tab = SearchTab(self.notebook.tab("Search"), self)
         self.scraping_tab = ScrapingTab(self.notebook.tab("Scraping"), self)
+        self.post_scraper_tab = PostScraperTab(self.notebook.tab("Post Scraper"), self)  # New tab
         self.results_tab = ResultsTab(self.notebook.tab("Results"), self)
         self.visualization_tab = VisualizationTab(self.notebook.tab("Visualization"), self)
 

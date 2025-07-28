@@ -44,6 +44,9 @@ class ScraperController:
     def get_driver(self):
         return self.driver
 
+    def is_logged_in(self):
+        return self.logged_in and self.driver is not None
+
     def scrape_friends_network(self, start_urls, depth, max_friends_per_profile, output_file):
         # Always re-initialize the scraper for each run, but reuse the persistent driver
         if self.driver is None or not self.logged_in:
