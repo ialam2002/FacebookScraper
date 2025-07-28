@@ -107,8 +107,17 @@ class ResultsTab:
         wb = openpyxl.Workbook()
         # Remove the default sheet
         wb.remove(wb.active)
+        # Main people tabs (one per person)
+        import re
+        def sanitize_sheet_name(name):
+            # Remove invalid characters for Excel sheet names: : \ / ? * [ ]
+            name = re.sub(r'[:\\/?*\[\]]', '', name)
+            # Remove leading/trailing whitespace and limit to 31 chars
+            return name.strip()[:31] or 'Sheet'
+
         for profile_url, data in network_data.items():
-            ws = wb.create_sheet(title=data['profile_name'][:31])  # Excel sheet names max 31 chars
+            safe_title = sanitize_sheet_name(data['profile_name'])
+            ws = wb.create_sheet(title=safe_title)
             ws.append(["#", "Name", "Profile URL", "Has Profile Pic", "Profile Pic URL"])
             for i, friend in enumerate(data.get('friends', []), 1):
                 ws.append([
@@ -129,6 +138,41 @@ class ResultsTab:
                     except Exception:
                         pass
                 ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
+
+        # Sheet 1: Main People Only
+        ws_main = wb.create_sheet(title="Main People Only")
+        ws_main.append(["Name", "Profile URL", "Profile Pic", "Connected"])
+        # For 'Connected', check if any other main person is in their friends
+        main_urls = list(network_data.keys())
+        for main_url, data in network_data.items():
+            # Connected if any other main profile is in this person's friends
+            connected = any(
+                other_url != main_url and any(f.get('url') == other_url for f in data.get('friends', []))
+                for other_url in main_urls
+            )
+            ws_main.append([
+                data.get('profile_name', ''),
+                main_url,
+                data.get('profile_pic', ''),
+                "Yes" if connected else "No"
+            ])
+
+        # Sheet 2: Main + Mutually Connected Friends
+        ws_mutual = wb.create_sheet(title="Main+Mutual Friends")
+        ws_mutual.append(["Main Name", "Main Profile URL", "Friend Name", "Friend Profile URL", "Mutual"])
+        # For each main, list all friends, and mark if that friend is also a main
+        for main_url, data in network_data.items():
+            main_name = data.get('profile_name', '')
+            for friend in data.get('friends', []):
+                is_mutual = friend.get('url') in main_urls
+                ws_mutual.append([
+                    main_name,
+                    main_url,
+                    friend.get('name', ''),
+                    friend.get('url', ''),
+                    "Yes" if is_mutual else "No"
+                ])
+
         try:
             wb.save(file_path)
             messagebox.showinfo("Export Successful", f"Results exported to {file_path}")
@@ -308,8 +352,14 @@ class ResultsTab:
 
         expand_btn = ctk.CTkButton(header_frame, text="+", width=28, command=toggle)
         expand_btn.pack(side="left", padx=(2, 6), pady=2)
-        # Show main profile name and URL in header
-        name = data.get('profile_name', 'Unknown')
+        # Show main profile name (never a URL) and URL in header
+        name = data.get('profile_name', '').strip() or 'Profile'
+        # If name looks like a URL, fallback to 'Profile' or person_id
+        import re
+        if re.match(r'https?://', name):
+            name = data.get('person_id', 'Profile')
+            if re.match(r'https?://', name):
+                name = 'Profile'
         url = data.get('main_profile_url', main_url)
         ctk.CTkLabel(header_frame, text=f"{name}", font=ctk.CTkFont(size=14, weight="bold"), cursor="hand2", text_color="#00bfff").pack(side="left")
         if url and url != 'N/A':

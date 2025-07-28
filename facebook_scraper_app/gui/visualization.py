@@ -25,23 +25,40 @@ class GraphVisualizer:
             merged_data = network_data
         G = nx.Graph()
 
-        # Add all main profiles (one per person)
+        # Add all main profiles (one per person), always use a proper name
+        import re
         main_profiles = set()
         for person_id, data in merged_data.items():
-            G.add_node(data['profile_name'], 
+            name = data.get('profile_name', '').strip() or 'Profile'
+            if re.match(r'https?://', name):
+                # Try to get from person_id if not a URL
+                pid = data.get('person_id', '').strip()
+                if pid and not re.match(r'https?://', pid):
+                    name = pid
+                else:
+                    name = 'Profile'
+            G.add_node(name, 
                      depth=data['depth'], 
                      url=data.get('profile_urls', [None])[0] or '',
                      profile_pic=data.get('profile_pic'))
-            main_profiles.add(data['profile_name'])
+            main_profiles.add(name)
 
         # Add friends and edges
         for person_id, data in merged_data.items():
+            # Use the same name logic for main profile
+            name = data.get('profile_name', '').strip() or 'Profile'
+            if re.match(r'https?://', name):
+                pid = data.get('person_id', '').strip()
+                if pid and not re.match(r'https?://', pid):
+                    name = pid
+                else:
+                    name = 'Profile'
             for friend in data['friends']:
                 G.add_node(friend['name'], 
                          depth=data['depth'] + 1, 
                          url=friend.get('url'),
                          profile_pic=friend.get('profile_pic'))
-                G.add_edge(data['profile_name'], friend['name'])
+                G.add_edge(name, friend['name'])
 
         # Add edges between main profiles if they are friends with each other
         main_profile_names = list(main_profiles)

@@ -101,12 +101,108 @@ class FacebookFriendsScraper:
     def _get_profile_name(self):
         """Extract the profile name from the current page."""
         try:
-            name_element = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[contains(concat(" ", @class, " "), concat(" ", "x1qlqyl8", " "))]'))
-            )
-            return name_element.text
+            print(f"Current URL: {self.driver.current_url}")
+            print("Attempting to extract profile name...")
+            
+            # Wait for page to load completely
+            time.sleep(3)
+            
+            # Try to find any h1 elements first to see what's available
+            try:
+                all_h1s = self.driver.find_elements(By.TAG_NAME, "h1")
+                print(f"Found {len(all_h1s)} h1 elements on page")
+                for i, h1 in enumerate(all_h1s[:3]):  # Check first 3 h1s
+                    try:
+                        text = h1.text.strip()
+                        classes = h1.get_attribute("class")
+                        print(f"H1 #{i+1}: text='{text}', classes='{classes}'")
+                    except:
+                        pass
+            except Exception as e:
+                print(f"Error checking h1 elements: {e}")
+            
+            # Try multiple selectors to find the profile name
+            selectors = [
+                '//span[@dir="auto"]/h1[contains(@class, "x1qlqyl8")]',
+                '//h1[contains(@class, "x1qlqyl8") and contains(@class, "html-h1")]',
+                '//h1[contains(@class, "x1qlqyl8")]',
+                '//h1[contains(@class, "html-h1")]',
+                '//*[contains(@class, "x1qlqyl8")]',
+                '//h1'  # Last resort - any h1
+            ]
+            
+            name_element = None
+            for i, selector in enumerate(selectors):
+                try:
+                    print(f"Trying selector {i+1}: {selector}")
+                    elements = self.driver.find_elements(By.XPATH, selector)
+                    print(f"Found {len(elements)} elements for selector {i+1}")
+                    
+                    if elements:
+                        # Try each element until we find one with non-empty text
+                        for j, element in enumerate(elements):
+                            try:
+                                text = element.text.strip()
+                                print(f"Element {j+1} text: '{text}'")
+                                if text and text != "Notifications" and len(text) > 1:
+                                    name_element = element
+                                    print(f"Using element {j+1} from selector {i+1} with text: '{text}'")
+                                    break
+                            except:
+                                continue
+                        
+                        if name_element:
+                            break
+                            
+                except Exception as e:
+                    print(f"Selector {i+1} failed: {str(e)}")
+                    continue
+            
+            if name_element is None:
+                print("Could not find profile name element with any selector")
+                # Try to get page source snippet for debugging
+                try:
+                    page_source = self.driver.page_source
+                    if "Jose Sone" in page_source:
+                        print("'Jose Sone' found in page source, but couldn't locate element")
+                    else:
+                        print("'Jose Sone' not found in page source")
+                except:
+                    pass
+                return "Unknown"
+            
+            # Get text and clean up non-breaking spaces and extra whitespace
+            try:
+                raw_text = name_element.text
+                print(f"Raw text from element: '{raw_text}'")
+                print(f"Element tag: {name_element.tag_name}")
+                print(f"Element classes: {name_element.get_attribute('class')}")
+                
+                if not raw_text:
+                    # Try to get innerHTML if text is empty
+                    inner_html = name_element.get_attribute('innerHTML')
+                    print(f"Element innerHTML: '{inner_html}'")
+                    # Extract text from HTML if needed
+                    import re
+                    text_match = re.search(r'>([^<]+)<', inner_html)
+                    if text_match:
+                        raw_text = text_match.group(1)
+                        print(f"Extracted text from innerHTML: '{raw_text}'")
+                
+                profile_name = raw_text.replace('\u00a0', ' ').strip()
+                # Remove any trailing spaces after cleaning
+                profile_name = ' '.join(profile_name.split())
+                print(f"Final extracted profile name: '{profile_name}'")
+                return profile_name if profile_name else "Unknown"
+                
+            except Exception as e:
+                print(f"Error extracting text from element: {e}")
+                return "Unknown"
+            
         except Exception as e:
             print(f"Could not extract profile name: {e}")
+            import traceback
+            traceback.print_exc()
             return "Unknown"
     
     def get_friends_list(self, profile_url, max_friends=2000):
