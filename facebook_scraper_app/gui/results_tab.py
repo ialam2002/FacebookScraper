@@ -173,6 +173,43 @@ class ResultsTab:
                     "Yes" if is_mutual else "No"
                 ])
 
+        # --- Custom Sheet: Mutuals Matrix ---
+        # Columns: Main profile | friend name | connected main name | name of friends of connected main | relation between mutual friends A and C (indicator) | relation between B and D (indicator)
+        ws_matrix = wb.create_sheet(title="Mutuals Matrix")
+        ws_matrix.append([
+            "Main profile", "friend name", "connected main name", "name of friends of connected main", "relation between mutual friends A and C (indicator)", "relation between B and D (indicator)"
+        ])
+        # Build a lookup for main profiles
+        main_urls = list(network_data.keys())
+        url_to_name = {url: data.get('profile_name', url) for url, data in network_data.items()}
+        for main_url, data in network_data.items():
+            main_name = data.get('profile_name', main_url)
+            for friend in data.get('friends', []):
+                friend_url = friend.get('url')
+                friend_name = friend.get('name', '')
+                # Only consider if friend is also a main profile (connected main)
+                if friend_url in main_urls:
+                    connected_main_url = friend_url
+                    connected_main_name = url_to_name[connected_main_url]
+                    # For each friend of the connected main
+                    for conn_friend in network_data[connected_main_url].get('friends', []):
+                        conn_friend_name = conn_friend.get('name', '')
+                        conn_friend_url = conn_friend.get('url', '')
+                        # Indicator: relation between mutual friends A and C (main and connected main)
+                        # Yes if main_url is in connected main's friends
+                        relation_A_C = "Yes" if any(f.get('url') == main_url for f in network_data[connected_main_url].get('friends', [])) else "No"
+                        # Indicator: relation between B and D (friend and conn_friend)
+                        relation_B_D = "Yes" if any(f.get('url') == conn_friend_url for f in data.get('friends', [])) else "No"
+                        ws_matrix.append([
+                            main_name,
+                            friend_name,
+                            connected_main_name,
+                            conn_friend_name,
+                            relation_A_C,
+                            relation_B_D
+                        ])
+
+        # Save after all sheets are created
         try:
             wb.save(file_path)
             messagebox.showinfo("Export Successful", f"Results exported to {file_path}")

@@ -752,12 +752,12 @@ class FacebookScraperApp(ctk.CTk):
                     if not self.scraping_active:
                         self.update_progress("Scraping stopped.", 0)
                         break
-                    # Scrape each profile (simulate original scrape_friends_network logic)
+                    # Scrape each profile but don't save to file yet (accumulate results first)
                     partial_network = self.scraper_controller.scrape_friends_network(
                         start_urls=[url],
                         depth=depth,
                         max_friends_per_profile=max_friends,
-                        output_file=output_file
+                        output_file=None  # Don't save individual results, accumulate them
                     )
                     if partial_network:
                         network.update(partial_network)
@@ -767,9 +767,26 @@ class FacebookScraperApp(ctk.CTk):
                 messagebox.showerror("Error", f"Scraping failed: {str(e)}")
             self.network_data = network if network else None
             if not self.scraping_active:
+                # Save any accumulated results even if stopped
+                if network:
+                    try:
+                        with open(output_file, 'w', encoding='utf-8') as f:
+                            json.dump(network, f, ensure_ascii=False, indent=2)
+                        self.update_results(network)
+                        messagebox.showinfo("Stopped", f"Scraping was stopped by user. Partial results saved to {output_file}")
+                    except Exception as save_error:
+                        messagebox.showerror("Save Error", f"Scraping stopped. Failed to save partial results: {str(save_error)}")
+                else:
+                    messagebox.showinfo("Stopped", "Scraping was stopped by user.")
                 self.update_progress("Scraping stopped.", 0)
-                messagebox.showinfo("Stopped", "Scraping was stopped by user.")
             elif network:
+                # Save final accumulated results to output file
+                try:
+                    with open(output_file, 'w', encoding='utf-8') as f:
+                        json.dump(network, f, ensure_ascii=False, indent=2)
+                except Exception as save_error:
+                    messagebox.showerror("Save Error", f"Failed to save results to {output_file}: {str(save_error)}")
+                
                 self.update_results(network)
                 self.update_progress("Scraping completed successfully!", 100)
                 messagebox.showinfo("Success", "Scraping completed successfully!")
@@ -785,18 +802,7 @@ class FacebookScraperApp(ctk.CTk):
     
     def stop_scraping(self):
         self.scraping_active = False
-        self.update_progress("Scraping stopped.", 0)
-        # Do NOT close the driver here
-        # Save current results if any
-        if self.network_data:
-            output_file = self.output_file_entry.get() if hasattr(self, 'output_file_entry') else None
-            if output_file:
-                try:
-                    with open(output_file, 'w', encoding='utf-8') as f:
-                        json.dump(self.network_data, f, ensure_ascii=False, indent=2)
-                    messagebox.showinfo("Results Saved", f"Current results saved to {output_file}")
-                except Exception as e:
-                    messagebox.showerror("Error", f"Failed to save current results: {e}")
+        # The run_scraping method will handle saving accumulated results
         # Reset controls to allow scraping to be started again
         self.after(0, self.reset_controls)
     
