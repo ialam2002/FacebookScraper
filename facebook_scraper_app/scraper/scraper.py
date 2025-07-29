@@ -273,7 +273,7 @@ class FacebookFriendsScraper:
             # Infinite scroll implementation
             last_height = self.driver.execute_script("return document.body.scrollHeight")
             no_new_friends_count = 0
-            max_no_new_friends = 3  # Stop if no new friends after this many scrolls
+            max_no_new_friends = 1  # Stop if no new friends after this many scrolls (faster)
 
             # XPath for the friends container
             friends_container_xpath = "//div[contains(@class, 'x78zum5') and contains(@class, 'x1q0g3np') and contains(@class, 'x1a02dak') and contains(@class, 'x1qughib')]"
@@ -282,7 +282,7 @@ class FacebookFriendsScraper:
             while True:
                 # Scroll to bottom
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(2)  # Wait to load
+                time.sleep(0.7)  # Wait to load (faster)
 
                 # Calculate new scroll height and compare with last scroll height
                 new_height = self.driver.execute_script("return document.body.scrollHeight")

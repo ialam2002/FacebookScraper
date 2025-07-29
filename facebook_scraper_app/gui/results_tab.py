@@ -177,7 +177,12 @@ class ResultsTab:
         # Columns: Main profile | friend name | connected main name | name of friends of connected main | relation between mutual friends A and C (indicator) | relation between B and D (indicator)
         ws_matrix = wb.create_sheet(title="Mutuals Matrix")
         ws_matrix.append([
-            "Main profile", "friend name", "connected main name", "name of friends of connected main", "relation between mutual friends A and C (indicator)", "relation between B and D (indicator)"
+            "Main Profile Name",
+            "Main Profile Friend Name",
+            "Connected Main Profile Name",
+            "Friend of Connected Main Name",
+            "Are Main and Connected Main Mutual Friends?",
+            "Are Main's Friend and Connected Main's Friend Mutual Friends?"
         ])
         # Build a lookup for main profiles
         main_urls = list(network_data.keys())
