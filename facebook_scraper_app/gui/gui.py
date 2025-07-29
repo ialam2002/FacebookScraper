@@ -814,7 +814,16 @@ class FacebookScraperApp(ctk.CTk):
             self.results_tab.display_results(network)
     
     def clear_results(self):
-        self.results_text.delete("1.0", "end")
+        # Clear the results using the proper ResultsTab method
+        if hasattr(self.results_tab, 'clear_collapsible_sections'):
+            self.results_tab.clear_collapsible_sections()
+        
+        # Clear the network data
+        self.network_data = []
+        
+        # Clear any search text
+        if hasattr(self.results_tab, 'search_var'):
+            self.results_tab.search_var.set("")
     
     def export_results(self):
         import pandas as pd
