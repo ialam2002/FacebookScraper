@@ -187,6 +187,7 @@ class ResultsTab:
         # Build a lookup for main profiles
         main_urls = list(network_data.keys())
         url_to_name = {url: data.get('profile_name', url) for url, data in network_data.items()}
+        seen_combinations = set()
         for main_url, data in network_data.items():
             main_name = data.get('profile_name', main_url)
             for friend in data.get('friends', []):
@@ -205,14 +206,21 @@ class ResultsTab:
                         relation_A_C = "Yes" if any(f.get('url') == main_url for f in network_data[connected_main_url].get('friends', [])) else "No"
                         # Indicator: relation between B and D (friend and conn_friend)
                         relation_B_D = "Yes" if any(f.get('url') == conn_friend_url for f in data.get('friends', [])) else "No"
-                        ws_matrix.append([
-                            main_name,
-                            friend_name,
-                            connected_main_name,
-                            conn_friend_name,
-                            relation_A_C,
-                            relation_B_D
-                        ])
+                        # Create a sorted tuple to avoid duplicate pairs (A,B,C,D) vs (C,D,A,B)
+                        combo = tuple(sorted([
+                            main_name, friend_name, connected_main_name, conn_friend_name,
+                            relation_A_C, relation_B_D
+                        ]))
+                        if combo not in seen_combinations:
+                            ws_matrix.append([
+                                main_name,
+                                friend_name,
+                                connected_main_name,
+                                conn_friend_name,
+                                relation_A_C,
+                                relation_B_D
+                            ])
+                            seen_combinations.add(combo)
 
         # Save after all sheets are created
         try:

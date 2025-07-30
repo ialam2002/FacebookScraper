@@ -95,21 +95,53 @@ class FacebookPostsScraper:
             # Navigate to profile
             self.driver.get(profile_url)
             time.sleep(3)
-            
+
+            # Ensure we are on the Posts tab
+
+            try:
+                # Wait for the Posts tab <a> element to appear (role='tab', contains span with text 'Posts')
+                posts_tab_xpath = "//a[@role='tab' and .//span[contains(text(), 'Posts') and contains(@class, 'x193iq5w')]]"
+                posts_tab_a = WebDriverWait(self.driver, 7).until(
+                    lambda d: d.find_element(By.XPATH, posts_tab_xpath)
+                )
+                print("Found Posts tab <a> element.")
+                from selenium.common.exceptions import StaleElementReferenceException, ElementNotInteractableException
+                for attempt in range(3):
+                    try:
+                        posts_tab_a = self.driver.find_element(By.XPATH, posts_tab_xpath)
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", posts_tab_a)
+                        WebDriverWait(self.driver, 2).until(lambda d: posts_tab_a.is_displayed() and posts_tab_a.is_enabled())
+                        time.sleep(0.5)
+                        try:
+                            posts_tab_a.click()
+                        except ElementNotInteractableException:
+                            print("Element not interactable, trying JavaScript click...")
+                            self.driver.execute_script("arguments[0].click();", posts_tab_a)
+                        print("Clicked Posts tab (<a> method).")
+                        time.sleep(2)
+                        break
+                    except (StaleElementReferenceException, ElementNotInteractableException) as ex:
+                        print(f"Exception on attempt {attempt+1}: {ex}, retrying...")
+                        time.sleep(1)
+                else:
+                    print("Failed to click Posts tab after retries due to stale or not interactable element.")
+            except Exception as e:
+                print(f"Could not robustly find or click Posts tab: {e}")
+
             # Get profile name
             result['profile_name'] = self._get_profile_name()
             print(f"Profile name: {result['profile_name']}")
-            
+
             # Extract likes from multiple posts
             print("Looking for posts with likes...")
             post_likes = self._extract_multiple_post_likes(max_posts)
             result['post_likes'] = post_likes
-            
+
             print(f"Successfully scraped likes from {len(post_likes)} posts")
-            
+
         except Exception as e:
             print(f"Error scraping post likes for {profile_url}: {e}")
-        
+
         return result
 
     def _extract_multiple_post_likes(self, max_posts):
@@ -353,52 +385,37 @@ class FacebookPostsScraper:
     def _extract_likes_from_popup_with_scroll(self):
         """Extract names and profile URLs from the likes popup with scrolling."""
         liked_by = []
-        
         try:
             # Wait for popup to fully load
-            time.sleep(3)
-            
-            print("Looking for likes popup...")
-            
-            # Find the popup container - look for a scrollable area
-            popup_containers = self.driver.find_elements(By.XPATH, '//div[@role="dialog"]')
-            
-            if not popup_containers:
-                print("No dialog popup found, trying alternative...")
-                popup_containers = self.driver.find_elements(By.XPATH, '//div[contains(@style, "max-height") or contains(@style, "overflow")]')
-            
-            popup_container = popup_containers[0] if popup_containers else None
-            
-            if popup_container:
-                print("Found popup container, scrolling to load all users...")
-                
-                # Scroll within the popup to load all users
-                last_count = 0
-                no_change_count = 0
-                max_no_change = 3
-                
-                while no_change_count < max_no_change:
-                    # Scroll down in the popup
-                    self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight", popup_container)
-                    time.sleep(2)
-                    
-                    # Count current users
-                    current_users = self._count_users_in_popup()
-                    print(f"Found {current_users} users after scroll")
-                    
-                    if current_users > last_count:
-                        last_count = current_users
-                        no_change_count = 0
-                    else:
-                        no_change_count += 1
-                
-                print(f"Finished scrolling. Total users found: {last_count}")
-            
+            time.sleep(2)
+            print("Scrolling likes popup using user elements as anchors...")
+
+            last_count = 0
+            no_change_count = 0
+            max_no_change = 3  # Stop if no new users after this many scrolls
+            scrolls = 0
+            while no_change_count < max_no_change:
+                user_elements = self.driver.find_elements(By.XPATH, "//div[@data-visualcompletion='ignore-dynamic' and contains(@style, 'padding-left: 8px; padding-right: 8px')]")
+                current_users = len(user_elements)
+                if user_elements:
+                    anchor = user_elements[-1]
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'end'});", anchor)
+                else:
+                    print("No user elements found to scroll to.")
+                    break
+                time.sleep(0.7)
+                print(f"Found {current_users} users after scroll {scrolls+1}")
+                if current_users > last_count:
+                    last_count = current_users
+                    no_change_count = 0
+                else:
+                    no_change_count += 1
+                scrolls += 1
+            print(f"Finished scrolling. Total users found: {last_count}")
+
             # Now extract all the users
             liked_by = self._extract_users_from_popup()
-            
             return liked_by
-            
         except Exception as e:
             print(f"Error extracting likes from popup with scroll: {e}")
             return []
