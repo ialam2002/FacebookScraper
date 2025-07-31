@@ -94,6 +94,11 @@ class ResultsTab:
             if not main_url:
                 main_url = data['profile_urls'][0] if 'profile_urls' in data and data['profile_urls'] else person_id
             network_data[main_url] = {**data, 'main_profile_url': main_url}
+
+        # DEBUG: Print all main profile names included in export
+        print("[DEBUG] Main profiles included in export:")
+        for url, data in network_data.items():
+            print(f"  - {data.get('profile_name', url)} (URL: {url})")
         import openpyxl
         from openpyxl.utils import get_column_letter
         from tkinter import filedialog, messagebox
@@ -133,53 +138,50 @@ class ResultsTab:
             ws_all.column_dimensions[col_letter].width = min(max_length + 2, 50)
 
         # --- Custom Sheet: Mutuals Matrix ---
-        # Columns: Main profile | friend name | connected main name | name of friends of connected main | relation between mutual friends A and C (indicator) | relation between B and D (indicator)
+        # Redefined Mutuals Matrix: Columns: Main Profile Name A, Main Profile Name B, mutual friend name
         ws_matrix = wb.create_sheet(title="Mutuals Matrix")
         ws_matrix.append([
-            "Main Profile Name",
-            "Main Profile Friend Name",
-            "Connected Main Profile Name",
-            "Friend of Connected Main Name",
-            "Are Main and Connected Main Mutual Friends?",
-            "Are Main's Friend and Connected Main's Friend Mutual Friends?"
+            "Main Profile Name A",
+            "Main Profile Name B",
+            "Mutual Friend Name"
         ])
         # Build a lookup for main profiles
         main_urls = list(network_data.keys())
         url_to_name = {url: data.get('profile_name', url) for url, data in network_data.items()}
-        seen_combinations = set()
-        for main_url, data in network_data.items():
-            main_name = data.get('profile_name', main_url)
-            for friend in data.get('friends', []):
-                friend_url = friend.get('url')
-                friend_name = friend.get('name', '')
-                # Only consider if friend is also a main profile (connected main)
-                if friend_url in main_urls:
-                    connected_main_url = friend_url
-                    connected_main_name = url_to_name[connected_main_url]
-                    # For each friend of the connected main
-                    for conn_friend in network_data[connected_main_url].get('friends', []):
-                        conn_friend_name = conn_friend.get('name', '')
-                        conn_friend_url = conn_friend.get('url', '')
-                        # Indicator: relation between mutual friends A and C (main and connected main)
-                        # Yes if main_url is in connected main's friends
-                        relation_A_C = "Yes" if any(f.get('url') == main_url for f in network_data[connected_main_url].get('friends', [])) else "No"
-                        # Indicator: relation between B and D (friend and conn_friend)
-                        relation_B_D = "Yes" if any(f.get('url') == conn_friend_url for f in data.get('friends', [])) else "No"
-                        # Create a sorted tuple to avoid duplicate pairs (A,B,C,D) vs (C,D,A,B)
-                        combo = tuple(sorted([
-                            main_name, friend_name, connected_main_name, conn_friend_name,
-                            relation_A_C, relation_B_D
-                        ]))
-                        if combo not in seen_combinations:
-                            ws_matrix.append([
-                                main_name,
-                                friend_name,
-                                connected_main_name,
-                                conn_friend_name,
-                                relation_A_C,
-                                relation_B_D
-                            ])
-                            seen_combinations.add(combo)
+        # For each unique unordered pair (A, B), A != B
+        for i, main_url in enumerate(main_urls):
+            main_name = url_to_name[main_url]
+            for j in range(i + 1, len(main_urls)):
+                other_url = main_urls[j]
+                other_name = url_to_name[other_url]
+                # Find mutual friends between A and B
+                a_friends = {f.get('url') for f in network_data[main_url].get('friends', []) if f.get('url')}
+                b_friends = {f.get('url') for f in network_data[other_url].get('friends', []) if f.get('url')}
+                mutual_friend_urls = a_friends & b_friends
+                # Add a row for each mutual friend
+                for mf_url in mutual_friend_urls:
+                    # Try to get the name from either profile's friends list
+                    mf_name = None
+                    for f in network_data[main_url].get('friends', []):
+                        if f.get('url') == mf_url:
+                            mf_name = f.get('name', mf_url)
+                            break
+                    if not mf_name:
+                        for f in network_data[other_url].get('friends', []):
+                            if f.get('url') == mf_url:
+                                mf_name = f.get('name', mf_url)
+                                break
+                    ws_matrix.append([
+                        main_name,
+                        other_name,
+                        mf_name or mf_url
+                    ])
+                # Also add a row for the main profiles themselves (mutual friend blank)
+                ws_matrix.append([
+                    main_name,
+                    other_name,
+                    ""
+                ])
 
         # Save after all sheets are created
         try:
