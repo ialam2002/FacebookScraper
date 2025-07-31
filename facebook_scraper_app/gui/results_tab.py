@@ -107,71 +107,30 @@ class ResultsTab:
         wb = openpyxl.Workbook()
         # Remove the default sheet
         wb.remove(wb.active)
-        # Main people tabs (one per person)
-        import re
-        def sanitize_sheet_name(name):
-            # Remove invalid characters for Excel sheet names: : \ / ? * [ ]
-            name = re.sub(r'[:\\/?*\[\]]', '', name)
-            # Remove leading/trailing whitespace and limit to 31 chars
-            return name.strip()[:31] or 'Sheet'
 
-        for profile_url, data in network_data.items():
-            safe_title = sanitize_sheet_name(data['profile_name'])
-            ws = wb.create_sheet(title=safe_title)
-            ws.append(["#", "Name", "Profile URL", "Has Profile Pic", "Profile Pic URL"])
-            for i, friend in enumerate(data.get('friends', []), 1):
-                ws.append([
-                    i,
-                    friend.get('name', 'N/A'),
-                    friend.get('url', 'N/A'),
-                    "Yes" if friend.get('profile_pic') else "No",
-                    friend.get('profile_pic', '')
-                ])
-            # Auto-size columns
-            for col in ws.columns:
-                max_length = 0
-                col_letter = get_column_letter(col[0].column)
-                for cell in col:
-                    try:
-                        if cell.value:
-                            max_length = max(max_length, len(str(cell.value)))
-                    except Exception:
-                        pass
-                ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
-
-        # Sheet 1: Main People Only
-        ws_main = wb.create_sheet(title="Main People Only")
-        ws_main.append(["Name", "Profile URL", "Profile Pic", "Connected"])
-        # For 'Connected', check if any other main person is in their friends
-        main_urls = list(network_data.keys())
+        # Single combined sheet for all friends
+        ws_all = wb.create_sheet(title="All Friends")
+        ws_all.append(["Main Profile Name", "Main Profile URL", "Friend Name", "Friend Profile URL"])
         for main_url, data in network_data.items():
-            # Connected if any other main profile is in this person's friends
-            connected = any(
-                other_url != main_url and any(f.get('url') == other_url for f in data.get('friends', []))
-                for other_url in main_urls
-            )
-            ws_main.append([
-                data.get('profile_name', ''),
-                main_url,
-                data.get('profile_pic', ''),
-                "Yes" if connected else "No"
-            ])
-
-        # Sheet 2: Main + Mutually Connected Friends
-        ws_mutual = wb.create_sheet(title="Main+Mutual Friends")
-        ws_mutual.append(["Main Name", "Main Profile URL", "Friend Name", "Friend Profile URL", "Mutual"])
-        # For each main, list all friends, and mark if that friend is also a main
-        for main_url, data in network_data.items():
-            main_name = data.get('profile_name', '')
+            main_name = data.get('profile_name', main_url)
             for friend in data.get('friends', []):
-                is_mutual = friend.get('url') in main_urls
-                ws_mutual.append([
+                ws_all.append([
                     main_name,
                     main_url,
                     friend.get('name', ''),
-                    friend.get('url', ''),
-                    "Yes" if is_mutual else "No"
+                    friend.get('url', '')
                 ])
+        # Auto-size columns
+        for col in ws_all.columns:
+            max_length = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except Exception:
+                    pass
+            ws_all.column_dimensions[col_letter].width = min(max_length + 2, 50)
 
         # --- Custom Sheet: Mutuals Matrix ---
         # Columns: Main profile | friend name | connected main name | name of friends of connected main | relation between mutual friends A and C (indicator) | relation between B and D (indicator)

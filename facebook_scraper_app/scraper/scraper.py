@@ -273,16 +273,20 @@ class FacebookFriendsScraper:
             # Infinite scroll implementation
             last_height = self.driver.execute_script("return document.body.scrollHeight")
             no_new_friends_count = 0
-            max_no_new_friends = 1  # Stop if no new friends after this many scrolls (faster)
+            max_no_new_friends = 20  # Allow even more scrolls before stopping
+            min_scrolls = 10  # Require at least this many scrolls before allowing early stop
+            scrolls_done = 0
 
             # XPath for the friends container
             friends_container_xpath = "//div[contains(@class, 'x78zum5') and contains(@class, 'x1q0g3np') and contains(@class, 'x1a02dak') and contains(@class, 'x1qughib')]"
             friend_link_xpath = ".//a[contains(@href, '/') and .//span[@dir='auto']]"
 
+
             while True:
                 # Scroll to bottom
                 self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                time.sleep(0.7)  # Wait to load (faster)
+                time.sleep(0.7)
+                scrolls_done += 1
 
                 # Calculate new scroll height and compare with last scroll height
                 new_height = self.driver.execute_script("return document.body.scrollHeight")
@@ -300,8 +304,11 @@ class FacebookFriendsScraper:
                 except Exception:
                     friend_elements = []
 
-                # Check if we've reached max friends or no new friends are loading
-                if len(friend_elements) >= max_friends or no_new_friends_count >= max_no_new_friends:
+                print(f"Scroll: {scrolls_done} | No new: {no_new_friends_count}/{max_no_new_friends} | Friends found: {len(friend_elements)}")
+
+                # Only allow early stop after min_scrolls
+                if len(friend_elements) >= max_friends or (scrolls_done >= min_scrolls and no_new_friends_count >= max_no_new_friends):
+                    print("Stopping scroll: either max friends reached or no new friends loaded after several scrolls.")
                     break
 
             # Find all friend link elements within the friends container
