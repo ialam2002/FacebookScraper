@@ -139,11 +139,22 @@ class ResultsTab:
 
         # --- Custom Sheet: Mutuals Matrix ---
         # Redefined Mutuals Matrix: Columns: Main Profile Name A, Main Profile Name B, mutual friend name
+        # Helper to normalize URLs (strip trailing slashes and query/fragment)
+        def normalize_url(url):
+            if not url:
+                return url
+            url = url.split('?', 1)[0].split('#', 1)[0]
+            url = url.rstrip('/')
+            if url.endswith('/friends'):
+                url = url[:-8]  # remove '/friends'
+            return url
         ws_matrix = wb.create_sheet(title="Mutuals Matrix")
         ws_matrix.append([
             "Main Profile Name A",
             "Main Profile Name B",
-            "Mutual Friend Name"
+            "Mutual Friend Name",
+            "Are A and B Direct Friends?",
+            "Is Mutual Friend Direct Friend of Both?"
         ])
         # Build a lookup for main profiles
         main_urls = list(network_data.keys())
@@ -151,35 +162,49 @@ class ResultsTab:
         # For each unique unordered pair (A, B), A != B
         for i, main_url in enumerate(main_urls):
             main_name = url_to_name[main_url]
+            norm_main_url = normalize_url(main_url)
             for j in range(i + 1, len(main_urls)):
                 other_url = main_urls[j]
                 other_name = url_to_name[other_url]
-                # Find mutual friends between A and B
-                a_friends = {f.get('url') for f in network_data[main_url].get('friends', []) if f.get('url')}
-                b_friends = {f.get('url') for f in network_data[other_url].get('friends', []) if f.get('url')}
+                norm_other_url = normalize_url(other_url)
+                # Find mutual friends between A and B (normalized)
+                a_friends = {normalize_url(f.get('url')) for f in network_data[main_url].get('friends', []) if f.get('url')}
+                b_friends = {normalize_url(f.get('url')) for f in network_data[other_url].get('friends', []) if f.get('url')}
                 mutual_friend_urls = a_friends & b_friends
+                # Indicator: Are A and B direct friends?
+                a_to_b = norm_other_url in a_friends
+                b_to_a = norm_main_url in b_friends
+                direct_friends = "Yes" if a_to_b or b_to_a else "No"
+                # Concise debug output for direct friendship
+                print(f"[DEBUG] {main_name} <{norm_main_url}> and {other_name} <{norm_other_url}>: a_to_b={a_to_b}, b_to_a={b_to_a}, direct_friends={direct_friends}")
                 # Add a row for each mutual friend
                 for mf_url in mutual_friend_urls:
-                    # Try to get the name from either profile's friends list
+                    # Try to get the name from either profile's friends list (using original, not normalized, for name lookup)
                     mf_name = None
                     for f in network_data[main_url].get('friends', []):
-                        if f.get('url') == mf_url:
-                            mf_name = f.get('name', mf_url)
+                        if normalize_url(f.get('url')) == mf_url:
+                            mf_name = f.get('name', f.get('url'))
                             break
                     if not mf_name:
                         for f in network_data[other_url].get('friends', []):
-                            if f.get('url') == mf_url:
-                                mf_name = f.get('name', mf_url)
+                            if normalize_url(f.get('url')) == mf_url:
+                                mf_name = f.get('name', f.get('url'))
                                 break
+                    # Indicator: Is mutual friend a direct friend of both?
+                    is_direct_friend_of_both = "Yes" if (mf_url in a_friends and mf_url in b_friends) else "No"
                     ws_matrix.append([
                         main_name,
                         other_name,
-                        mf_name or mf_url
+                        mf_name or mf_url,
+                        direct_friends,
+                        is_direct_friend_of_both
                     ])
                 # Also add a row for the main profiles themselves (mutual friend blank)
                 ws_matrix.append([
                     main_name,
                     other_name,
+                    "",
+                    direct_friends,
                     ""
                 ])
 
