@@ -196,7 +196,7 @@ class ResultsTab:
                         main_name,
                         other_name,
                         mf_name or mf_url,
-                        direct_friends,
+                        "",  # Leave Are A and B Direct Friends? blank for mutual friend rows
                         is_direct_friend_of_both
                     ])
                 # Also add a row for the main profiles themselves (mutual friend blank)
