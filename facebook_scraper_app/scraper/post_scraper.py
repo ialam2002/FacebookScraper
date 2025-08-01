@@ -81,7 +81,7 @@ class FacebookPostsScraper:
             print(f"Error extracting profile name: {e}")
             return "Unknown"
 
-    def scrape_posts(self, profile_url, max_posts=50):
+    def scrape_posts(self, profile_url, max_posts=1000000):
         """Scrape people who liked posts from a Facebook profile."""
         print(f"Scraping post likes from: {profile_url}")
         

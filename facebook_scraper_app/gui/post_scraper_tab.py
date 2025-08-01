@@ -41,12 +41,22 @@ class PostScraperTab:
         params_frame = ctk.CTkFrame(frame)
         params_frame.pack(fill="x", padx=10, pady=10)
 
-        # Max posts per profile
+        # Cap toggle for max posts per profile
+        self.cap_enabled_var = ctk.BooleanVar(value=False)
+        self.cap_checkbox = ctk.CTkCheckBox(params_frame, text="Enable Post Cap", variable=self.cap_enabled_var, onvalue=True, offvalue=False)
+        self.cap_checkbox.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
         posts_label = ctk.CTkLabel(params_frame, text="Max Posts per Profile:")
-        posts_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        posts_label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
         self.max_posts_entry = ctk.CTkEntry(params_frame, width=80)
         self.max_posts_entry.insert(0, "10")
-        self.max_posts_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.max_posts_entry.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        # Disable max_posts_entry unless cap is enabled
+        def toggle_max_posts_entry():
+            state = "normal" if self.cap_enabled_var.get() else "disabled"
+            self.max_posts_entry.configure(state=state)
+        self.cap_enabled_var.trace_add('write', lambda *args: toggle_max_posts_entry())
+        toggle_max_posts_entry()
 
         # Output file selection
         output_label = ctk.CTkLabel(frame, text="Output File:")
@@ -126,13 +136,17 @@ class PostScraperTab:
             return
 
         # Get max posts
-        try:
-            max_posts = int(self.max_posts_entry.get())
-            if max_posts <= 0:
-                raise ValueError()
-        except ValueError:
-            messagebox.showerror("Error", "Max posts must be a positive integer.")
-            return
+        cap_enabled = self.cap_enabled_var.get() if hasattr(self, 'cap_enabled_var') else False
+        if cap_enabled:
+            try:
+                max_posts = int(self.max_posts_entry.get())
+                if max_posts <= 0:
+                    raise ValueError()
+            except ValueError:
+                messagebox.showerror("Error", "Max posts must be a positive integer.")
+                return
+        else:
+            max_posts = 1000000  # Effectively unlimited
 
         # Get output file
         output_file = self.output_file_entry.get().strip()
