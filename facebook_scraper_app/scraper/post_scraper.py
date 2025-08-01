@@ -145,23 +145,19 @@ class FacebookPostsScraper:
         return result
 
     def _extract_multiple_post_likes(self, max_posts):
-        """Find and process multiple posts with likes."""
+        """Find and process multiple posts with likes. Scrolls until no more new posts can be loaded."""
         all_post_likes = []
         processed_elements = set()  # Track elements we've already clicked
-        
         try:
             posts_processed = 0
             scroll_position = 0
-            
+            no_new_posts_scrolls = 0
+            max_no_new_posts_scrolls = 10  # Stop after 10 scrolls with no new posts found
+            last_total_elements = 0
             while posts_processed < max_posts:
                 print(f"\n=== Processing post {posts_processed + 1} ===")
                 print(f"Current scroll position: {scroll_position}")
-                
-                # Look for the specific likes count elements in the context of Facebook posts
                 print("Looking for Facebook post likes count elements...")
-                
-                # Method 1: Look for likes count in the context of "X and Y others" or just "X" likes
-                # This targets the specific pattern where likes appear with text like "John Doe and 62 others"
                 likes_patterns = [
                     # Pattern: "X others" - targets the number before "others"
                     '//span[@class="x135b78x" and following-sibling::text()[contains(., "others")] or following-sibling::span[contains(text(), "others")]]',
@@ -200,55 +196,52 @@ class FacebookPostsScraper:
                         continue
                 
                 likes_elements = unique_elements
-                
                 # If no specific likes elements found, try a more general approach
                 if not likes_elements:
                     print("No specific likes patterns found, trying general approach...")
-                    
-                    # Look for clickable elements that contain reaction counts
                     general_patterns = [
                         '//div[@role="button" and .//span[@class="x135b78x"]]//span[@class="x135b78x"]',
                         '//a[contains(@aria-label, "reaction") or contains(@aria-label, "like")]//span[@class="x135b78x"]',
                         '//span[@class="x135b78x" and string-length(text()) >= 1 and string-length(text()) <= 4]'
                     ]
-                    
                     for pattern in general_patterns:
                         try:
                             elements = self.driver.find_elements(By.XPATH, pattern)
                             likes_elements.extend(elements)
                         except:
                             continue
-                
                 print(f"Found {len(likes_elements)} potential likes count elements")
-                
                 # Filter out elements we've already processed
                 new_elements = []
                 for elem in likes_elements:
                     try:
-                        # Create a unique identifier for this element
                         elem_location = elem.location
                         elem_text = elem.text.strip()
                         elem_identifier = f"{elem_location['x']}_{elem_location['y']}_{elem_text}"
-                        
                         if elem_identifier not in processed_elements:
                             new_elements.append((elem, elem_identifier))
                         else:
                             print(f"Skipping already processed element: {elem_text} at {elem_location}")
                     except:
                         continue
-                
                 print(f"Found {len(new_elements)} new unprocessed elements")
-                
+                # If no new elements, scroll and check if new posts load
                 if not new_elements:
                     print("No new elements found, scrolling down to find more posts...")
-                    # Scroll down to find more posts
                     self.driver.execute_script("window.scrollBy(0, 500);")
                     scroll_position += 500
-                    time.sleep(3)  # Wait for new content to load
-                    
-                    # If we've scrolled too much without finding new posts, break
-                    if scroll_position > 3000:  # Prevent infinite scrolling
-                        print("Scrolled too far without finding new posts, stopping...")
+                    time.sleep(3)
+                    # Check if new post containers appeared after scroll using the provided HTML class
+                    post_container_xpath = "//div[contains(@class, 'x1yztbdb') and contains(@class, 'x1n2onr6') and contains(@class, 'xh8yej3') and contains(@class, 'x1ja2u2z')]"
+                    total_elements = len(self.driver.find_elements(By.XPATH, post_container_xpath))
+                    if total_elements > last_total_elements:
+                        last_total_elements = total_elements
+                        no_new_posts_scrolls = 0
+                    else:
+                        no_new_posts_scrolls += 1
+                        print(f"No new posts found after scroll. ({no_new_posts_scrolls}/{max_no_new_posts_scrolls})")
+                    if no_new_posts_scrolls >= max_no_new_posts_scrolls:
+                        print("No more new posts can be loaded. Stopping.")
                         break
                     continue
                 

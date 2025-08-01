@@ -15,6 +15,7 @@ class PostScraperTab:
         self.frame.pack(fill="both", expand=True, padx=10, pady=10)
         self.post_scraper = None
         self.scraping_active = False
+        self.loaded_json_results = None  # To store results from loaded JSON
         self.build_post_scraper_tab()
 
     def build_post_scraper_tab(self):
@@ -92,18 +93,127 @@ class PostScraperTab:
             hover_color="darkred",
             state="disabled"
         )
-        self.stop_btn.pack(side="left")
+        self.stop_btn.pack(side="left", padx=(0, 10))
 
-        # Progress and status
-        self.progress_label = ctk.CTkLabel(frame, text="Ready to scrape post likes", font=ctk.CTkFont(size=12))
-        self.progress_label.pack(pady=10)
+        self.export_excel_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Export Likes to Excel",
+            command=self.export_likes_to_excel,
+            fg_color="#1d6f42",
+            hover_color="#14532d"
+        )
+        self.export_excel_btn.pack(side="left")
 
-        # Results text area
-        results_label = ctk.CTkLabel(frame, text="Scraping Progress:")
-        results_label.pack(anchor="w", padx=10, pady=(10, 5))
+        # Results text area (for status and loaded JSON summary)
+        self.results_text = scrolledtext.ScrolledText(frame, height=8, wrap="word", font=("Consolas", 10))
+        self.results_text.pack(fill="x", padx=10, pady=(0, 10))
 
-        self.results_text = scrolledtext.ScrolledText(frame, height=10, wrap="word", font=("Consolas", 9))
-        self.results_text.pack(fill="both", expand=True, padx=10, pady=(0, 10))
+        # Add button to load JSON results
+        self.load_json_btn = ctk.CTkButton(
+            buttons_frame,
+            text="Load Likes JSON",
+            command=self.load_likes_json,
+            fg_color="#1d4f6f",
+            hover_color="#14526d"
+        )
+        self.load_json_btn.pack(side="left", padx=(10, 0))
+
+    def load_likes_json(self):
+        """Load post likes data from a JSON file and display summary."""
+        import json
+        from tkinter import filedialog, messagebox
+        file_path = filedialog.askopenfilename(
+            defaultextension=".json",
+            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
+            title="Select Likes JSON File"
+        )
+        if not file_path:
+            return
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                all_results = json.load(f)
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not load JSON file: {e}")
+            return
+        # Store loaded results for export
+        self.loaded_json_results = all_results
+        # Display summary in results_text
+        self.results_text.delete("1.0", "end")
+        summary_lines = []
+        for profile in all_results:
+            name = profile.get("profile_name", "Unknown")
+            url = profile.get("profile_url", "")
+            post_count = len(profile.get("post_likes", []))
+            summary_lines.append(f"{name} ({url}) - {post_count} posts scraped")
+        self.results_text.insert("end", "Loaded JSON file:\n" + "\n".join(summary_lines) + "\n")
+        self.results_text.see("end")
+
+    def export_likes_to_excel(self):
+        """Export deduplicated post likes to Excel."""
+        import openpyxl
+        from openpyxl.utils import get_column_letter
+        from tkinter import filedialog, messagebox
+        # Ask for file
+        file_path = filedialog.asksaveasfilename(
+            defaultextension=".xlsx",
+            filetypes=[("Excel Files", "*.xlsx")],
+            title="Save Likes Excel File"
+        )
+        if not file_path:
+            return
+        # Use loaded JSON if available, else load from output file
+        all_results = getattr(self, "loaded_json_results", None)
+        if all_results is None:
+            output_file = self.output_file_entry.get().strip()
+            if output_file and os.path.exists(output_file):
+                try:
+                    with open(output_file, 'r', encoding='utf-8') as f:
+                        all_results = json.load(f)
+                except Exception as e:
+                    messagebox.showerror("Error", f"Could not load JSON results: {e}")
+                    return
+        if not all_results:
+            messagebox.showerror("Error", "No results to export. Please scrape first, load a JSON file, or select a valid output file.")
+            return
+        # Build deduplicated list: (scraped_profile_name, scraped_profile_url, liker_name, liker_profile_url)
+        deduped = set()
+        rows = []
+        for profile in all_results:
+            scraped_name = profile.get('profile_name', 'Unknown')
+            scraped_url = profile.get('profile_url', '')
+            for post in profile.get('post_likes', []):
+                for liker in post.get('liked_by', []):
+                    liker_name = liker.get('name', '')
+                    liker_url = liker.get('profile_url', '')
+                    key = (scraped_name, scraped_url, liker_name, liker_url)
+                    if key not in deduped:
+                        rows.append([scraped_name, scraped_url, liker_name, liker_url])
+                        deduped.add(key)
+        # Write to Excel
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Post Likes"
+        ws.append(["Scraped Profile Name", "Scraped Profile URL", "Liker Name", "Liker Profile URL"])
+        for row in rows:
+            ws.append(row)
+        # Auto-size columns
+        for col in ws.columns:
+            max_length = 0
+            col_letter = get_column_letter(col[0].column)
+            for cell in col:
+                try:
+                    if cell.value:
+                        max_length = max(max_length, len(str(cell.value)))
+                except Exception:
+                    pass
+            ws.column_dimensions[col_letter].width = min(max_length + 2, 50)
+        try:
+            wb.save(file_path)
+            messagebox.showinfo("Export Successful", f"Likes exported to {file_path}")
+        except Exception as e:
+            messagebox.showerror("Export Failed", f"Could not save Excel file: {e}")
+
+        # (No widget creation here; only in build_post_scraper_tab)
 
     def browse_output_file(self):
         """Browse for output file location."""
