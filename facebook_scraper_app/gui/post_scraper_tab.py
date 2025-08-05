@@ -104,6 +104,9 @@ class PostScraperTab:
         )
         self.export_excel_btn.pack(side="left")
 
+        # Progress label for status updates
+        self.progress_label = ctk.CTkLabel(frame, text="", font=ctk.CTkFont(size=12, weight="bold"), text_color="#1d4f6f")
+        self.progress_label.pack(fill="x", padx=10, pady=(0, 5))
         # Results text area (for status and loaded JSON summary)
         self.results_text = scrolledtext.ScrolledText(frame, height=8, wrap="word", font=("Consolas", 10))
         self.results_text.pack(fill="x", padx=10, pady=(0, 10))

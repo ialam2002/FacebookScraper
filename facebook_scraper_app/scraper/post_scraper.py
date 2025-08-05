@@ -18,6 +18,18 @@ import json
 import re
 
 class FacebookPostsScraper:
+    def normalize_facebook_profile_url(url):
+        """Normalize Facebook profile URLs to remove all query parameters, fragments, and trailing slashes."""
+        if not url:
+            return url
+        # Remove everything after '?' (query params)
+        url = url.split('?', 1)[0]
+        # Remove everything after '#' (fragment)
+        url = url.split('#', 1)[0]
+        # Remove trailing slash if present
+        if url.endswith('/'):
+            url = url[:-1]
+        return url
     def __init__(self, driver):
         """Initialize the scraper with an existing driver instance."""
         self.driver = driver
@@ -240,6 +252,14 @@ class FacebookPostsScraper:
                     else:
                         no_new_posts_scrolls += 1
                         print(f"No new posts found after scroll. ({no_new_posts_scrolls}/{max_no_new_posts_scrolls})")
+                    # Detect repeated blank elements at the same location (infinite loop)
+                    if len(likes_elements) == 1:
+                        elem = likes_elements[0]
+                        elem_location = elem.location
+                        elem_text = elem.text.strip()
+                        if elem_text == '' and elem_location['x'] == 0 and elem_location['y'] > 10000:
+                            print(f"Detected repeated blank element at {elem_location}, stopping.")
+                            break
                     if no_new_posts_scrolls >= max_no_new_posts_scrolls:
                         print("No more new posts can be loaded. Stopping.")
                         break
@@ -332,15 +352,11 @@ class FacebookPostsScraper:
                 
                 if not clicked_element:
                     print("No valid likes elements found to click")
-                    # Scroll down to find more posts
-                    print("Scrolling down to find more posts...")
+                    # Instead of stopping, just keep scrolling and looking for more posts
                     self.driver.execute_script("window.scrollBy(0, 500);")
                     scroll_position += 500
                     time.sleep(3)
-                    
-                    if scroll_position > 3000:  # Prevent infinite scrolling
-                        print("Scrolled too far without finding new posts, stopping...")
-                        break
+                    # Do NOT break here; let the main while loop and no_new_posts_scrolls logic handle stopping
                     continue
                 
                 # Extract likes from popup with scrolling
@@ -439,7 +455,8 @@ class FacebookPostsScraper:
                     
                     for link in name_links:
                         try:
-                            profile_url = link.get_attribute('href')
+                            raw_url = link.get_attribute('href')
+                            profile_url = self.normalize_facebook_profile_url(raw_url)
                             name = link.text.strip()
                             
                             if (profile_url and name and 

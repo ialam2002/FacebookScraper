@@ -711,13 +711,12 @@ class FacebookScraperApp(ctk.CTk):
             messagebox.showerror("Error", "Please enter at least one profile URL")
             return
 
-        urls = []
+        # Robustly handle both comma-separated and newline-separated URLs
+        raw_urls = []
         for line in urls_text.split('\n'):
-            if ',' in line:
-                urls.extend([url.strip() for url in line.split(',') if url.strip()])
-            else:
-                if line.strip():
-                    urls.append(line.strip())
+            raw_urls.extend([url.strip() for url in line.split(',') if url.strip()])
+        # Remove empty entries and duplicates
+        urls = [u for u in raw_urls if u]
 
         depth = int(self.depth_spinbox.get())
         # Use cap toggle
