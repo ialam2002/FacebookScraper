@@ -237,12 +237,12 @@ class PostScraperTab:
             messagebox.showerror("Error", "Please enter at least one profile URL.")
             return
 
-        # Parse URLs
-        urls = []
+        # Parse URLs (handle both comma-separated and newline-separated)
+        raw_urls = []
         for line in urls_text.split('\n'):
-            line = line.strip()
-            if line and 'facebook.com' in line:
-                urls.append(line)
+            raw_urls.extend([url.strip() for url in line.split(',') if url.strip()])
+        # Only keep valid Facebook URLs
+        urls = [u for u in raw_urls if 'facebook.com' in u]
 
         if not urls:
             messagebox.showerror("Error", "No valid Facebook URLs found.")

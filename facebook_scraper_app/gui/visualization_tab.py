@@ -27,7 +27,7 @@ class VisualizationTab:
         layout_menu = ctk.CTkOptionMenu(controls_frame, values=layouts, variable=self.app.layout_var)
         layout_menu.pack(side="left", padx=5)
 
-        self.app.mutual_friends_only_var = ctk.BooleanVar(value=False)
+        self.app.mutual_friends_only_var = ctk.BooleanVar(value=True)
         mutual_checkbox = ctk.CTkCheckBox(controls_frame, text="Show mutual friends only", variable=self.app.mutual_friends_only_var)
         mutual_checkbox.pack(side="left", padx=15)
 
