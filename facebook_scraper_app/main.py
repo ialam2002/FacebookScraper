@@ -4,10 +4,11 @@ Main entry point for the Facebook Scraper GUI application.
 Initializes and runs the main application window.
 """
 
-
 import os
-
+import sys
 import threading
+import tkinter.messagebox as messagebox
+
 # Suppress TensorFlow warnings early
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 2 = only errors, 3 = suppress all
@@ -15,13 +16,16 @@ os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"  # 2 = only errors, 3 = suppress all
 # Import splash screen from separate module
 from splash import show_splash_screen
 
-
-
-import sys
-import tkinter.messagebox as messagebox
-
 def check_dependencies():
-    chromedriver_path = os.path.join(os.path.dirname(__file__), 'chromedriver', 'chromedriver.exe')
+    # Use the same logic as the scraper to find chromedriver
+    if getattr(sys, 'frozen', False):
+        # Running in a PyInstaller bundle
+        base_path = sys._MEIPASS
+    else:
+        # Running in normal Python environment - get the directory containing main.py
+        base_path = os.path.dirname(os.path.abspath(__file__))
+    
+    chromedriver_path = os.path.join(base_path, 'chromedriver', 'chromedriver.exe')
     if not os.path.isfile(chromedriver_path):
         messagebox.showerror("Dependency Error", f"chromedriver.exe not found at {chromedriver_path}. Please ensure it is present.")
         return False
@@ -65,7 +69,19 @@ def startup():
 
         # Wait for pre-import to finish or timeout (max 2 seconds for UI responsiveness)
         preimport_done.wait(timeout=2)
-        from gui.gui import FacebookScraperApp
+        try:
+            from gui.gui import FacebookScraperApp
+        except ImportError as e:
+            print(f"Import error when loading FacebookScraperApp: {e}")
+            messagebox.showerror("Import Error", f"Failed to import FacebookScraperApp: {e}")
+            cleanup_splash(splash, splash_root)
+            sys.exit(1)
+        except Exception as e:
+            print(f"General error when loading FacebookScraperApp: {e}")
+            messagebox.showerror("Loading Error", f"Failed to load FacebookScraperApp: {e}")
+            cleanup_splash(splash, splash_root)
+            sys.exit(1)
+            
         cleanup_splash(splash, splash_root)
         app = FacebookScraperApp()
         app.mainloop()

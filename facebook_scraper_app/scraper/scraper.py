@@ -34,11 +34,11 @@ class FacebookFriendsScraper:
             # Running in a PyInstaller bundle
             base_path = sys._MEIPASS
         else:
-            # Running in normal Python environment
-            base_path = os.path.dirname(os.path.abspath(__file__))
+            # Running in normal Python environment - go up from scraper/ to facebook_scraper_app/
+            base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         
-        # Look for chromedriver in the application directory
-        return os.path.join(base_path, 'chromedriver.exe')
+        # Look for chromedriver in the chromedriver subdirectory
+        return os.path.join(base_path, 'chromedriver', 'chromedriver.exe')
     
     def _initialize_driver(self):
         """Initialize and configure the Chrome driver."""

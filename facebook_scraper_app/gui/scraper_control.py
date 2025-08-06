@@ -14,7 +14,7 @@ class ScraperController:
         try:
             # Only create driver if not already created
             if self.driver is None:
-                self.scraper = FacebookFriendsScraper(driver_path=r"C:\Users\nuixalam\Desktop\FacebookScraper\facebook_scraper_app\chromedriver\chromedriver.exe")
+                self.scraper = FacebookFriendsScraper(driver_path=None)  # Use auto-detection
                 self.driver = self.scraper.driver
             else:
                 self.scraper = FacebookFriendsScraper(driver_path=None)

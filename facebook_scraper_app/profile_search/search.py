@@ -3,6 +3,7 @@
 Profile search and face matching logic for Facebook Scraper.
 Includes image processing and Selenium automation.
 """
+import sys
 import requests
 import cv2
 import numpy as np
@@ -128,12 +129,29 @@ class ImageProcessor:
 class FacebookScraper:
     """Handles all Facebook scraping operations"""
     
-    def __init__(self, username: str, password: str, driver_path: str = r"C:\Users\nuixalam\Desktop\FacebookScraper\facebook_scraper_app\chromedriver\chromedriver.exe", driver=None):
+    def __init__(self, username: str, password: str, driver_path: str = None, driver=None):
         self.username = username
         self.password = password
-        self.driver_path = driver_path
+        self.driver_path = self._get_driver_path(driver_path) if driver is None else None
         self.driver = driver  # Accept an existing driver instance
         self._external_driver = driver is not None
+        
+    def _get_driver_path(self, driver_path):
+        """Determine the correct chromedriver path for packaged or dev environment."""
+        if driver_path:
+            return driver_path
+            
+        if getattr(sys, 'frozen', False):
+            # Running in a PyInstaller bundle
+            base_path = sys._MEIPASS
+        else:
+            # Running in normal Python environment
+            base_path = os.path.dirname(os.path.abspath(__file__))
+            # Go up one level to get to the facebook_scraper_app directory
+            base_path = os.path.dirname(base_path)
+        
+        # Look for chromedriver in the application directory
+        return os.path.join(base_path, 'chromedriver', 'chromedriver.exe')
         
     def __enter__(self):
         """Context manager entry - initialize the driver if not provided"""
