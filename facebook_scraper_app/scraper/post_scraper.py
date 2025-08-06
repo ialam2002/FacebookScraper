@@ -166,224 +166,98 @@ class FacebookPostsScraper:
             no_new_posts_scrolls = 0
             max_no_new_posts_scrolls = 10  # Stop after 10 scrolls with no new posts found
             last_total_elements = 0
+            # Find all post containers
+            post_container_xpath = "//div[contains(@class, 'x1yztbdb') and contains(@class, 'x1n2onr6') and contains(@class, 'xh8yej3') and contains(@class, 'x1ja2u2z')]"
+            processed_like_imgs = set()
+            last_post_count = 0
+            scroll_attempts = 0
+            max_scroll_attempts = 15
+            next_container_idx = 0
             while posts_processed < max_posts:
-                print(f"\n=== Processing post {posts_processed + 1} ===")
-                print(f"Current scroll position: {scroll_position}")
-                print("Looking for Facebook post likes count elements...")
-                likes_patterns = [
-                    # Pattern: "X others" - targets the number before "others"
-                    '//span[@class="x135b78x" and following-sibling::text()[contains(., "others")] or following-sibling::span[contains(text(), "others")]]',
-                    
-                    # Pattern: Just a number followed by reaction emoji or in likes context
-                    '//span[@class="x135b78x" and ancestor::div[contains(@aria-label, "reactions") or contains(@aria-label, "like") or contains(text(), "like")]]',
-                    
-                    # Pattern: Number in a clickable likes section
-                    '//div[contains(@aria-label, "See who reacted") or contains(@role, "button")]//span[@class="x135b78x"]',
-                    
-                    # Pattern: Specific structure for likes count (your original structure)
-                    '//span[@class="x135b78x" and string-length(text()) <= 4 and text() != "" and ancestor::*[contains(@aria-label, "reaction") or contains(@aria-label, "like") or contains(@aria-label, "See who")]]'
-                ]
-                
-                likes_elements = []
-                for pattern in likes_patterns:
-                    try:
-                        elements = self.driver.find_elements(By.XPATH, pattern)
-                        if elements:
-                            print(f"Found {len(elements)} elements with pattern: {pattern}")
-                            likes_elements.extend(elements)
-                    except Exception as e:
-                        print(f"Error with pattern {pattern}: {e}")
+                post_containers = self.driver.find_elements(By.XPATH, post_container_xpath)
+                print(f"Found {len(post_containers)} post containers.")
+                new_posts_found = False
+                # Find the next unprocessed post container in order
+                found_next = False
+                for idx in range(next_container_idx, len(post_containers)):
+                    post_div = post_containers[idx]
+                    like_img_elems = post_div.find_elements(By.XPATH, './/img[contains(@class, "x16dsc37") and @height="18" and @width="18" and @role="presentation"]')
+                    if not like_img_elems:
                         continue
-                
-                # Remove duplicates
-                unique_elements = []
-                seen_elements = set()
-                for elem in likes_elements:
-                    try:
-                        elem_id = id(elem)
-                        if elem_id not in seen_elements:
-                            unique_elements.append(elem)
-                            seen_elements.add(elem_id)
-                    except:
+                    img_elem = like_img_elems[0]
+                    img_loc = tuple(img_elem.location.items())
+                    if img_loc in processed_like_imgs:
                         continue
-                
-                likes_elements = unique_elements
-                # If no specific likes elements found, try a more general approach
-                if not likes_elements:
-                    print("No specific likes patterns found, trying general approach...")
-                    general_patterns = [
-                        '//div[@role="button" and .//span[@class="x135b78x"]]//span[@class="x135b78x"]',
-                        '//a[contains(@aria-label, "reaction") or contains(@aria-label, "like")]//span[@class="x135b78x"]',
-                        '//span[@class="x135b78x" and string-length(text()) >= 1 and string-length(text()) <= 4]'
-                    ]
-                    for pattern in general_patterns:
-                        try:
-                            elements = self.driver.find_elements(By.XPATH, pattern)
-                            likes_elements.extend(elements)
-                        except:
-                            continue
-                print(f"Found {len(likes_elements)} potential likes count elements")
-                # Filter out elements we've already processed
-                new_elements = []
-                for elem in likes_elements:
-                    try:
-                        elem_location = elem.location
-                        elem_text = elem.text.strip()
-                        elem_identifier = f"{elem_location['x']}_{elem_location['y']}_{elem_text}"
-                        if elem_identifier not in processed_elements:
-                            new_elements.append((elem, elem_identifier))
-                        else:
-                            print(f"Skipping already processed element: {elem_text} at {elem_location}")
-                    except:
-                        continue
-                print(f"Found {len(new_elements)} new unprocessed elements")
-                # If no new elements, scroll and check if new posts load
-                if not new_elements:
-                    print("No new elements found, scrolling down to find more posts...")
-                    self.driver.execute_script("window.scrollBy(0, 500);")
-                    scroll_position += 500
+                    print(f"\n=== Processing post {posts_processed + 1} (container {idx+1}) ===")
+                    print(f"Clicking like button at location {img_elem.location}...")
+                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", img_elem)
+                    time.sleep(0.5)
+                    self.driver.execute_script("arguments[0].click();", img_elem)
                     time.sleep(3)
-                    # Check if new post containers appeared after scroll using the provided HTML class
-                    post_container_xpath = "//div[contains(@class, 'x1yztbdb') and contains(@class, 'x1n2onr6') and contains(@class, 'xh8yej3') and contains(@class, 'x1ja2u2z')]"
-                    total_elements = len(self.driver.find_elements(By.XPATH, post_container_xpath))
-                    if total_elements > last_total_elements:
-                        last_total_elements = total_elements
-                        no_new_posts_scrolls = 0
-                    else:
-                        no_new_posts_scrolls += 1
-                        print(f"No new posts found after scroll. ({no_new_posts_scrolls}/{max_no_new_posts_scrolls})")
-                    # Detect repeated blank elements at the same location (infinite loop)
-                    if len(likes_elements) == 1:
-                        elem = likes_elements[0]
-                        elem_location = elem.location
-                        elem_text = elem.text.strip()
-                        if elem_text == '' and elem_location['x'] == 0 and elem_location['y'] > 10000:
-                            print(f"Detected repeated blank element at {elem_location}, stopping.")
-                            break
-                    if no_new_posts_scrolls >= max_no_new_posts_scrolls:
-                        print("No more new posts can be loaded. Stopping.")
+                    processed_like_imgs.add(img_loc)
+                    new_posts_found = True
+                    found_next = True
+                    next_container_idx = idx + 1
+                    # Verify popup opened
+                    popups = self.driver.find_elements(By.XPATH, '//div[@role="dialog" or contains(@aria-label, "People who reacted")]')
+                    if not popups:
+                        print("✗ No popup appeared after clicking <img> element")
                         break
-                    continue
-                
-                # Filter and validate the elements to find actual likes counts
-                clicked_element = None
-                clicked_identifier = None
-                
-                for elem, elem_identifier in new_elements:
-                    try:
-                        text = elem.text.strip()
-                        print(f"Checking new element: text = '{text}' at {elem.location}")
-                        
-                        # Validate this is actually a likes count
-                        if not (text.isdigit() and int(text) > 0 and len(text) <= 4):
-                            print(f"Skipping '{text}' - not a valid likes count")
-                            continue
-                        
-                        # Check the context around this element to ensure it's a likes count
-                        context_valid = False
-                        try:
-                            # Get parent elements and their text to check context
-                            parent = elem
-                            for level in range(3):
-                                parent = parent.find_element(By.XPATH, '..')
-                                parent_text = parent.text.lower()
-                                parent_aria = parent.get_attribute('aria-label') or ""
-                                parent_aria = parent_aria.lower()
-                                
-                                # Check if this is in a likes/reactions context
-                                if any(keyword in parent_text or keyword in parent_aria for keyword in 
-                                      ['like', 'reaction', 'others', 'reacted', 'see who']):
-                                    context_valid = True
-                                    print(f"Found valid likes context: '{parent_aria}' or '{parent_text[:50]}'")
-                                    break
-                        except:
-                            pass
-                        
-                        if not context_valid:
-                            print(f"Skipping '{text}' - not in likes context")
-                            continue
-                        
-                        print(f"Valid likes count found: '{text}' - attempting to click...")
-                        
-                        # Find the clickable element (could be the span itself or a parent)
-                        clickable_elem = elem
-                        
-                        # Check if the span itself is clickable
-                        span_cursor = elem.value_of_css_property('cursor')
-                        if span_cursor != 'pointer':
-                            # Look for clickable parent
-                            try:
-                                clickable_parent = elem.find_element(By.XPATH, './ancestor::*[@role="button" or @tabindex="0" or contains(@style, "cursor: pointer")][1]')
-                                clickable_elem = clickable_parent
-                                print(f"Using clickable parent: {clickable_parent.tag_name}")
-                            except:
-                                print("No clickable parent found, trying span directly")
-                        
-                        # Attempt to click
-                        try:
-                            print(f"Clicking likes count '{text}'...")
-                            self.driver.execute_script("arguments[0].click();", clickable_elem)
-                            time.sleep(3)
-                            
-                            # Verify popup opened
-                            popups = self.driver.find_elements(By.XPATH, '//div[@role="dialog" or contains(@aria-label, "People who reacted")]')
-                            if popups:
-                                print(f"✓ Successfully opened likes popup for count '{text}'!")
-                                clicked_element = elem
-                                clicked_identifier = elem_identifier
-                                # Mark this element as processed
-                                processed_elements.add(elem_identifier)
-                                break
-                            else:
-                                print(f"✗ No popup appeared after clicking '{text}'")
-                                # Still mark as processed to avoid trying again
-                                processed_elements.add(elem_identifier)
-                                continue
-                                
-                        except Exception as click_error:
-                            print(f"Error clicking '{text}': {click_error}")
-                            # Mark as processed to avoid trying again
-                            processed_elements.add(elem_identifier)
-                            continue
-                            
-                    except Exception as e:
-                        print(f"Error processing element: {e}")
-                        continue
-                
-                if not clicked_element:
-                    print("No valid likes elements found to click")
-                    # Instead of stopping, just keep scrolling and looking for more posts
-                    self.driver.execute_script("window.scrollBy(0, 500);")
-                    scroll_position += 500
+                    print("✓ Successfully opened likes popup by clicking <img> element!")
+                    # Extract likes from popup with scrolling
+                    print("Extracting likes from popup...")
+                    liked_by = self._extract_likes_from_popup_with_scroll()
+                    post_data = {
+                        'post_number': posts_processed + 1,
+                        'likes_count': '',  # likes count not available from img, can be improved
+                        'liked_by': liked_by
+                    }
+                    all_post_likes.append(post_data)
+                    posts_processed += 1
+                    print(f"✓ Successfully processed post {posts_processed} with {len(liked_by)} likes")
+                    # Close popup by clicking elsewhere
+                    self._close_popup_by_clicking_elsewhere()
+                    # Scroll to the next unprocessed post container if available
+                    if next_container_idx < len(post_containers):
+                        next_post_div = post_containers[next_container_idx]
+                        self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_post_div)
+                        time.sleep(1)
+                    else:
+                        # If no next post container, scroll further to load more
+                        self.driver.execute_script("window.scrollBy(0, 1000);")
+                        scroll_position += 1000
+                        time.sleep(2)
+                    break
+                if not found_next:
+                    # If no new posts found, scroll further to load more
+                    scroll_attempts += 1
+                    print(f"No new posts found, scrolling down to load more... (attempt {scroll_attempts}/{max_scroll_attempts})")
+                    self.driver.execute_script("window.scrollBy(0, 1000);")
+                    scroll_position += 1000
                     time.sleep(3)
-                    # Do NOT break here; let the main while loop and no_new_posts_scrolls logic handle stopping
-                    continue
-                
-                # Extract likes from popup with scrolling
-                print("Extracting likes from popup...")
-                liked_by = self._extract_likes_from_popup_with_scroll()
-                
-                post_data = {
-                    'post_number': posts_processed + 1,
-                    'likes_count': clicked_element.text.strip(),
-                    'liked_by': liked_by
-                }
-                
-                all_post_likes.append(post_data)
-                posts_processed += 1
-                
-                print(f"✓ Successfully processed post {posts_processed} with {len(liked_by)} likes")
-                
-                # Close popup by clicking elsewhere
-                self._close_popup_by_clicking_elsewhere()
-                
-                # Scroll down a bit to find next post
-                if posts_processed < max_posts:
-                    print("Scrolling to find next post...")
-                    self.driver.execute_script("window.scrollBy(0, 300);")
-                    scroll_position += 300
-                    time.sleep(2)
-            
+                    # If after several scrolls no new posts appear, stop
+                    if len(post_containers) == last_post_count:
+                        if scroll_attempts >= max_scroll_attempts:
+                            print("No more new posts can be loaded. Stopping.")
+                            break
+                    else:
+                        last_post_count = len(post_containers)
+                        scroll_attempts = 0
+                # If no new posts found, scroll further to load more
+                if not new_posts_found:
+                    scroll_attempts += 1
+                    print(f"No new posts found, scrolling down to load more... (attempt {scroll_attempts}/{max_scroll_attempts})")
+                    self.driver.execute_script("window.scrollBy(0, 1000);")
+                    scroll_position += 1000
+                    time.sleep(3)
+                    # If after several scrolls no new posts appear, stop
+                    if len(post_containers) == last_post_count:
+                        if scroll_attempts >= max_scroll_attempts:
+                            print("No more new posts can be loaded. Stopping.")
+                            break
+                    else:
+                        last_post_count = len(post_containers)
+                        scroll_attempts = 0
             print(f"\n=== Completed processing {len(all_post_likes)} posts ===")
             return all_post_likes
             
