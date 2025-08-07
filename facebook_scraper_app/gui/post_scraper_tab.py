@@ -60,7 +60,7 @@ class PostScraperTab:
         toggle_max_posts_entry()
 
         # Output file selection
-        output_label = ctk.CTkLabel(frame, text="Output File:")
+        output_label = ctk.CTkLabel(frame, text="Output File (Optional - leave blank to save in memory only):")
         output_label.pack(anchor="w", padx=10, pady=(10, 5))
 
         output_frame = ctk.CTkFrame(frame, fg_color="transparent")
@@ -264,8 +264,7 @@ class PostScraperTab:
         # Get output file
         output_file = self.output_file_entry.get().strip()
         if not output_file:
-            messagebox.showerror("Error", "Please specify an output file.")
-            return
+            output_file = None  # Allow None for memory-only storage
 
         # Check if logged in
         if not self.app.scraper_controller.is_logged_in():
@@ -325,15 +324,22 @@ class PostScraperTab:
 
             # Save results
             if all_results:
-                try:
-                    with open(output_file, 'w', encoding='utf-8') as f:
-                        json.dump(all_results, f, indent=2, ensure_ascii=False)
-                    
-                    self.update_progress(f"✓ Results saved to {output_file}")
-                    self.update_progress(f"✓ Scraping completed! Total profiles: {len(all_results)}")
-                    
-                except Exception as e:
-                    self.update_progress(f"✗ Error saving results: {str(e)}")
+                # Store results in memory for access by other tabs
+                self.loaded_json_results = all_results
+                
+                if output_file:
+                    try:
+                        with open(output_file, 'w', encoding='utf-8') as f:
+                            json.dump(all_results, f, indent=2, ensure_ascii=False)
+                        
+                        self.update_progress(f"✓ Results saved to {output_file}")
+                        self.update_progress(f"✓ Scraping completed! Total profiles: {len(all_results)}")
+                        
+                    except Exception as e:
+                        self.update_progress(f"✗ Error saving results: {str(e)}")
+                        self.update_progress(f"✓ Scraping completed! Total profiles: {len(all_results)} (data available for visualization)")
+                else:
+                    self.update_progress(f"✓ Scraping completed! Total profiles: {len(all_results)} (data saved in memory - available for visualization and export)")
             else:
                 self.update_progress("✗ No data was scraped.")
 

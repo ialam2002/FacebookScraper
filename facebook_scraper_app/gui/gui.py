@@ -726,11 +726,11 @@ class FacebookScraperApp(ctk.CTk):
             max_friends = int(self.max_friends_spinbox.get())
         else:
             max_friends = 1000000  # Effectively unlimited
-        output_file = self.output_file_entry.get()
-
+        output_file = self.output_file_entry.get().strip()
+        
+        # Output file is now optional - if empty, pass None
         if not output_file:
-            messagebox.showerror("Error", "Please specify an output file")
-            return
+            output_file = None
 
         self.start_button.configure(state="disabled")
         self.stop_button.configure(state="normal")
@@ -768,7 +768,7 @@ class FacebookScraperApp(ctk.CTk):
             self.network_data = network if network else None
             if not self.scraping_active:
                 # Save any accumulated results even if stopped
-                if network:
+                if network and output_file:
                     try:
                         with open(output_file, 'w', encoding='utf-8') as f:
                             json.dump(network, f, ensure_ascii=False, indent=2)
@@ -776,20 +776,29 @@ class FacebookScraperApp(ctk.CTk):
                         messagebox.showinfo("Stopped", f"Scraping was stopped by user. Partial results saved to {output_file}")
                     except Exception as save_error:
                         messagebox.showerror("Save Error", f"Scraping stopped. Failed to save partial results: {str(save_error)}")
+                elif network:
+                    # No output file specified, just update results in memory
+                    self.update_results(network)
+                    messagebox.showinfo("Stopped", "Scraping was stopped by user. Results available in memory only.")
                 else:
                     messagebox.showinfo("Stopped", "Scraping was stopped by user.")
                 self.update_progress("Scraping stopped.", 0)
             elif network:
-                # Save final accumulated results to output file
-                try:
-                    with open(output_file, 'w', encoding='utf-8') as f:
-                        json.dump(network, f, ensure_ascii=False, indent=2)
-                except Exception as save_error:
-                    messagebox.showerror("Save Error", f"Failed to save results to {output_file}: {str(save_error)}")
+                # Save final accumulated results to output file (if specified)
+                if output_file:
+                    try:
+                        with open(output_file, 'w', encoding='utf-8') as f:
+                            json.dump(network, f, ensure_ascii=False, indent=2)
+                        success_msg = f"Scraping completed successfully! Results saved to {output_file}"
+                    except Exception as save_error:
+                        messagebox.showerror("Save Error", f"Failed to save results to {output_file}: {str(save_error)}")
+                        success_msg = "Scraping completed successfully! Results available in memory only."
+                else:
+                    success_msg = "Scraping completed successfully! Results available in memory only."
                 
                 self.update_results(network)
                 self.update_progress("Scraping completed successfully!", 100)
-                messagebox.showinfo("Success", "Scraping completed successfully!")
+                messagebox.showinfo("Success", success_msg)
             else:
                 self.update_progress("Scraping completed with no results", 100)
                 messagebox.showinfo("Info", "Scraping completed but no data was collected")

@@ -43,7 +43,7 @@ class ScrapingTab:
         self.app.max_friends_spinbox.insert(0, "200")
         self.app.max_friends_spinbox.grid(row=0, column=4, padx=5, pady=5, sticky="w")
 
-        output_label = ctk.CTkLabel(frame, text="Output File:")
+        output_label = ctk.CTkLabel(frame, text="Output File (Optional - leave blank to save in memory only):")
         output_label.pack(anchor="w", padx=10, pady=(10, 5))
 
         output_frame = ctk.CTkFrame(frame, fg_color="transparent")
