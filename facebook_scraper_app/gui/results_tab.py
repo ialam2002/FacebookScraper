@@ -95,10 +95,6 @@ class ResultsTab:
                 main_url = data['profile_urls'][0] if 'profile_urls' in data and data['profile_urls'] else person_id
             network_data[main_url] = {**data, 'main_profile_url': main_url}
 
-        # DEBUG: Print all main profile names included in export
-        print("[DEBUG] Main profiles included in export:")
-        for url, data in network_data.items():
-            print(f"  - {data.get('profile_name', url)} (URL: {url})")
         import openpyxl
         from openpyxl.utils import get_column_letter
         from tkinter import filedialog, messagebox
@@ -176,7 +172,6 @@ class ResultsTab:
                 b_to_a = norm_main_url in b_friends
                 direct_friends = "Yes" if a_to_b or b_to_a else "No"
                 # Concise debug output for direct friendship
-                print(f"[DEBUG] {main_name} <{norm_main_url}> and {other_name} <{norm_other_url}>: a_to_b={a_to_b}, b_to_a={b_to_a}, direct_friends={direct_friends}")
                 # Add a row for each mutual friend
                 for mf_url in mutual_friend_urls:
                     # Try to get the name from either profile's friends list (using original, not normalized, for name lookup)

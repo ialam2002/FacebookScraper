@@ -2,22 +2,21 @@
 Facebook posts scraping logic using Selenium automation.
 Handles navigation and post extraction from user profiles.
 """
-import sys
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
+
+# Standard library imports
+import json
+import os
+import re
+import time
+
+# Third-party imports
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from collections import deque
-import time
-import os
-from tkinter import messagebox
-import json
-import re
 
 class FacebookPostsScraper:
+    @staticmethod
     def normalize_facebook_profile_url(url):
         """Normalize Facebook profile URLs to remove all query parameters, fragments, and trailing slashes."""
         if not url:
@@ -30,6 +29,7 @@ class FacebookPostsScraper:
         if url.endswith('/'):
             url = url[:-1]
         return url
+        
     def __init__(self, driver):
         """Initialize the scraper with an existing driver instance."""
         self.driver = driver
@@ -440,7 +440,6 @@ class FacebookPostsScraper:
             
             # Method 5: Press Escape key
             print("Trying Escape key...")
-            from selenium.webdriver.common.keys import Keys
             self.driver.find_element(By.TAG_NAME, "body").send_keys(Keys.ESCAPE)
             time.sleep(2)
             print("Popup closed with Escape key")

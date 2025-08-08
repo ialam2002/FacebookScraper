@@ -3,26 +3,32 @@
 Main GUI application for the Facebook Scraper.
 Handles tab management, event routing, and main window logic.
 """
+
+# Standard library imports
+import csv
+import io
+import json
+import os
+import threading
+import webbrowser
+import tempfile
+
+# Third-party imports
 import customtkinter as ctk
 from tkinter import messagebox, filedialog, scrolledtext
-import os
-import json
-import tempfile
-import webbrowser
-import threading
+from PIL import Image, ImageTk
+import requests
+
+# Local imports
 from gui.scraper_control import ScraperController
 from gui.visualization import GraphVisualizer
 from gui.config_tab import ConfigTab
 from gui.search_tab import SearchTab
 from gui.scraping_tab import ScrapingTab
-from gui.post_scraper_tab import PostScraperTab  # New import
+from gui.post_scraper_tab import PostScraperTab
 from gui.results_tab import ResultsTab
 from gui.visualization_tab import VisualizationTab
 from profile_search.search import FaceMatcher, ImageProcessor
-from PIL import Image, ImageTk
-import requests
-import io
-import csv
 
 # Set appearance after all imports
 ctk.set_appearance_mode("dark")
@@ -1134,5 +1140,4 @@ class FacebookScraperApp(ctk.CTk):
     def open_url(self, url):
         """Open the profile URL in default browser"""
         if url and url.startswith('http'):
-            import webbrowser
             webbrowser.open(url)

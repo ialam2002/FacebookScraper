@@ -3,7 +3,16 @@
 Facebook friends scraping logic using Selenium automation.
 Handles login, navigation, and data extraction.
 """
+
+# Standard library imports
+import json
+import os
 import sys
+import time
+from collections import deque
+from tkinter import messagebox
+
+# Third-party imports
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -11,11 +20,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from collections import deque
-import time
-import os
-from tkinter import messagebox
-import json
 
 class FacebookFriendsScraper:
     def __init__(self, driver_path=None, driver=None):

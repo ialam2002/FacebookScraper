@@ -3,21 +3,25 @@
 Profile search and face matching logic for Facebook Scraper.
 Includes image processing and Selenium automation.
 """
+
+# Standard library imports
+import os
 import sys
-import requests
+import time
+from typing import List, Dict, Optional, Union
+
+# Third-party imports
 import cv2
 import numpy as np
+import requests
 from deepface import DeepFace
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-import time
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.keys import Keys
-import os
-from typing import List, Dict, Optional, Union
 
 class ImageProcessor:
     """Handles all image-related operations"""
