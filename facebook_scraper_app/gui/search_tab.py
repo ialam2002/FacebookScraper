@@ -112,14 +112,27 @@ class SearchTab:
             )
             score_label.pack(anchor="w", pady=2)
 
+            # Buttons frame to hold both buttons
+            buttons_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+            buttons_frame.pack(anchor="w", pady=8, fill="x")
+
             # Add to Scraper button
             add_button = ctk.CTkButton(
-                info_frame,
+                buttons_frame,
                 text="Add to Scraper",
                 command=lambda url=url: self.app.add_to_scraper(url),
+                width=130
+            )
+            add_button.pack(side="left", padx=(0, 5))
+
+            # Add to Post Scraper button
+            add_post_button = ctk.CTkButton(
+                buttons_frame,
+                text="Add to Post Scraper",
+                command=lambda url=url: self.app.add_to_post_scraper(url),
                 width=140
             )
-            add_button.pack(anchor="w", pady=8)
+            add_post_button.pack(side="left")
 
         # Update status
         self.search_status.configure(text=f"Found {len(results)} result(s).", text_color="green")
@@ -542,14 +555,29 @@ class SearchTab:
                         text_color="white"
                     )
                     score_label.pack(anchor="w", pady=2)
-                    # Pass person_id (person_name) to add_to_scraper
+                    
+                    # Buttons frame to hold both buttons
+                    buttons_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
+                    buttons_frame.pack(anchor="w", pady=8, fill="x")
+
+                    # Add to Scraper button (pass person_id for tracking)
                     add_button = ctk.CTkButton(
-                        info_frame,
+                        buttons_frame,
                         text="Add to Scraper",
                         command=lambda url=url, person_name=person_name: self.app.add_to_scraper(url, person_id=person_name),
+                        width=130
+                    )
+                    add_button.pack(side="left", padx=(0, 5))
+
+                    # Add to Post Scraper button
+                    add_post_button = ctk.CTkButton(
+                        buttons_frame,
+                        text="Add to Post Scraper",
+                        command=lambda url=url: self.app.add_to_post_scraper(url),
                         width=140
                     )
-                    add_button.pack(anchor="w", pady=8)
+                    add_post_button.pack(side="left")
+                    
                     content_widgets.append(result_frame)
                 # If no results after filtering
                 if not filtered_results:

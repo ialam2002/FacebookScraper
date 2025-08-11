@@ -18,17 +18,37 @@ from selenium.webdriver.support import expected_conditions as EC
 class FacebookPostsScraper:
     @staticmethod
     def normalize_facebook_profile_url(url):
-        """Normalize Facebook profile URLs to remove all query parameters, fragments, and trailing slashes."""
+        """
+        Normalize Facebook profile URLs to remove unwanted query parameters while preserving essential ones.
+        Handles both types of Facebook profile URLs:
+        1. https://www.facebook.com/username
+        2. https://www.facebook.com/profile.php?id=123456789
+        """
         if not url:
             return url
-        # Remove everything after '?' (query params)
-        url = url.split('?', 1)[0]
-        # Remove everything after '#' (fragment)
+            
+        import re
+        
+        # Remove fragment (everything after #)
         url = url.split('#', 1)[0]
-        # Remove trailing slash if present
-        if url.endswith('/'):
-            url = url[:-1]
-        return url
+        
+        # Handle profile.php URLs - preserve the id parameter
+        if '/profile.php' in url:
+            # Extract the base URL and id parameter using regex
+            match = re.match(r'(https?://[^/]+/profile\.php)\?.*?id=([^&]+)', url)
+            if match:
+                base_url, profile_id = match.groups()
+                return f"{base_url}?id={profile_id}"
+            else:
+                # If no id parameter found, return as is (shouldn't happen with valid profile.php URLs)
+                return url.split('?', 1)[0]
+        else:
+            # Handle regular username URLs - remove all query parameters
+            url = url.split('?', 1)[0]
+            # Remove trailing slash if present
+            if url.endswith('/'):
+                url = url[:-1]
+            return url
         
     def __init__(self, driver):
         """Initialize the scraper with an existing driver instance."""

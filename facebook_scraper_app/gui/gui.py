@@ -1137,6 +1137,25 @@ class FacebookScraperApp(ctk.CTk):
             if hasattr(self, 'notebook'):
                 self.notebook.set("Scraping")
 
+    def add_to_post_scraper(self, url, person_id=None):
+        """Add the profile URL to the post scraping list (Post Scraper tab)."""
+        if hasattr(self, 'post_scraper_tab') and self.post_scraper_tab and url:
+            # Access the post scraper tab's profile_urls_text widget
+            post_urls_text = self.post_scraper_tab.profile_urls_text
+            current_urls = post_urls_text.get("1.0", "end-1c").strip()
+            urls = set([u.strip() for u in current_urls.replace(',', '\n').split('\n') if u.strip()])
+            if url not in urls:
+                if current_urls:
+                    post_urls_text.insert("end", f"\n{url}")
+                else:
+                    post_urls_text.insert("end", url)
+                messagebox.showinfo("Success", "Profile added to post scraping list!")
+            else:
+                messagebox.showinfo("Info", "Profile already in post scraping list.")
+            # Switch to Post Scraper tab
+            if hasattr(self, 'notebook'):
+                self.notebook.set("Post Scraper")
+
     def open_url(self, url):
         """Open the profile URL in default browser"""
         if url and url.startswith('http'):

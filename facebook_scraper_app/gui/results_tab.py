@@ -135,15 +135,32 @@ class ResultsTab:
 
         # --- Custom Sheet: Mutuals Matrix ---
         # Redefined Mutuals Matrix: Columns: Main Profile Name A, Main Profile Name B, mutual friend name
-        # Helper to normalize URLs (strip trailing slashes and query/fragment)
+        # Helper to normalize URLs (strip trailing slashes and unwanted query/fragment while preserving essential parameters)
         def normalize_url(url):
             if not url:
                 return url
-            url = url.split('?', 1)[0].split('#', 1)[0]
-            url = url.rstrip('/')
-            if url.endswith('/friends'):
-                url = url[:-8]  # remove '/friends'
-            return url
+            
+            import re
+            
+            # Remove fragment (everything after #)
+            url = url.split('#', 1)[0]
+            
+            # Handle profile.php URLs - preserve the id parameter
+            if '/profile.php' in url:
+                match = re.match(r'(https?://[^/]+/profile\.php)\?.*?id=([^&]+)', url)
+                if match:
+                    base_url, profile_id = match.groups()
+                    return f"{base_url}?id={profile_id}"
+                else:
+                    # If no id parameter found, return as is
+                    return url.split('?', 1)[0]
+            else:
+                # Handle regular username URLs - remove all query parameters
+                url = url.split('?', 1)[0]
+                url = url.rstrip('/')
+                if url.endswith('/friends'):
+                    url = url[:-8]  # remove '/friends'
+                return url
         ws_matrix = wb.create_sheet(title="Mutuals Matrix")
         ws_matrix.append([
             "Main Profile Name A",
