@@ -98,11 +98,10 @@ class SearchTab:
             # Similarity score (distance)
             distance = profile.get('distance', float('inf'))
             if distance != float('inf'):
-                # Lower distance = better match. Show as "Match Score: 1 - distance" for user clarity
                 match_score = max(0.0, 1.0 - distance)
-                score_text = f"Match Score: {match_score:.2f} (Distance: {distance:.2f})"
+                score_text = f"Image Similarity Score: {match_score:.2f}"
             else:
-                score_text = "Match Score: N/A"
+                score_text = "Image Similarity Score: N/A"
             score_label = ctk.CTkLabel(
                 info_frame,
                 text=score_text,
@@ -111,6 +110,22 @@ class SearchTab:
                 text_color="white"
             )
             score_label.pack(anchor="w", pady=2)
+            # Tooltip for similarity score
+            def show_tooltip(event, label=score_label):
+                if not hasattr(label, '_tooltip'):
+                    tooltip = ctk.CTkToplevel(label)
+                    tooltip.wm_overrideredirect(True)
+                    tooltip.geometry(f"+{event.x_root+10}+{event.y_root+10}")
+                    msg = "A higher score (closer to 1.0) means the faces are more similar. 1.0 is a perfect match."
+                    tip_label = ctk.CTkLabel(tooltip, text=msg, font=ctk.CTkFont(size=12), fg_color="black", text_color="white", wraplength=250)
+                    tip_label.pack()
+                    label._tooltip = tooltip
+            def hide_tooltip(event, label=score_label):
+                if hasattr(label, '_tooltip'):
+                    label._tooltip.destroy()
+                    delattr(label, '_tooltip')
+            score_label.bind("<Enter>", show_tooltip)
+            score_label.bind("<Leave>", hide_tooltip)
 
             # Buttons frame to hold both buttons
             buttons_frame = ctk.CTkFrame(info_frame, fg_color="transparent")
@@ -546,7 +561,10 @@ class SearchTab:
                     url_label.pack(anchor="w", pady=2)
                     if url != 'N/A':
                         url_label.bind("<Button-1>", lambda e, url=url: self.app.open_url(url))
-                    score_text = f"Match Score: {match_score:.2f} (Distance: {distance:.2f})" if distance != float('inf') else "Match Score: N/A"
+                    if distance != float('inf'):
+                        score_text = f"Image Similarity Score: {match_score:.2f}"
+                    else:
+                        score_text = "Image Similarity Score: N/A"
                     score_label = ctk.CTkLabel(
                         info_frame,
                         text=score_text,
@@ -555,6 +573,22 @@ class SearchTab:
                         text_color="white"
                     )
                     score_label.pack(anchor="w", pady=2)
+                    # Tooltip for similarity score
+                    def show_tooltip(event, label=score_label):
+                        if not hasattr(label, '_tooltip'):
+                            tooltip = ctk.CTkToplevel(label)
+                            tooltip.wm_overrideredirect(True)
+                            tooltip.geometry(f"+{event.x_root+10}+{event.y_root+10}")
+                            msg = "A higher score (closer to 1.0) means the faces are more similar. 1.0 is a perfect match."
+                            tip_label = ctk.CTkLabel(tooltip, text=msg, font=ctk.CTkFont(size=12), fg_color="black", text_color="white", wraplength=250)
+                            tip_label.pack()
+                            label._tooltip = tooltip
+                    def hide_tooltip(event, label=score_label):
+                        if hasattr(label, '_tooltip'):
+                            label._tooltip.destroy()
+                            delattr(label, '_tooltip')
+                    score_label.bind("<Enter>", show_tooltip)
+                    score_label.bind("<Leave>", hide_tooltip)
                     
                     # Buttons frame to hold both buttons
                     buttons_frame = ctk.CTkFrame(info_frame, fg_color="transparent")

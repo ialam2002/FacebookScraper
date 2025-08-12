@@ -726,14 +726,9 @@ class FacebookScraperApp(ctk.CTk):
         urls = [u for u in raw_urls if u]
 
         depth = int(self.depth_spinbox.get())
-        # Use cap toggle
-        cap_enabled = self.cap_enabled_var.get() if hasattr(self, 'cap_enabled_var') else False
-        if cap_enabled:
-            max_friends = int(self.max_friends_spinbox.get())
-        else:
-            max_friends = 1000000  # Effectively unlimited
+        # Always use unlimited max_friends
+        max_friends = 1000000  # Effectively unlimited
         output_file = self.output_file_entry.get().strip()
-        
         # Output file is now optional - if empty, pass None
         if not output_file:
             output_file = None
