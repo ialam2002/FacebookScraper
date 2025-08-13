@@ -71,6 +71,13 @@ class ResultsTab:
 
         load_btn = ctk.CTkButton(buttons_frame, text="Load from JSON", command=self.app.load_from_json)
         load_btn.pack(side="left", padx=5)
+
+        # Internal use label
+        internal_label = ctk.CTkLabel(frame, text="FOR INTERNAL USE ONLY", 
+                                    font=ctk.CTkFont(size=14, weight="bold"), 
+                                    text_color="#ff6b6b")
+        internal_label.pack(pady=(15, 5))
+
     def export_to_excel(self):
         # Merge profiles before export, grouped by person
         from gui.merge_utils import merge_profiles

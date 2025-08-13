@@ -38,10 +38,10 @@ class ScrapingTab:
         params_frame.pack(fill="x", padx=10, pady=10)
 
         depth_label = ctk.CTkLabel(params_frame, text="Depth:")
-        depth_label.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        depth_label.pack(side="left", padx=5, pady=5)
         self.app.depth_spinbox = ctk.CTkEntry(params_frame, width=50)
         self.app.depth_spinbox.insert(0, "0")
-        self.app.depth_spinbox.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        self.app.depth_spinbox.pack(side="left", padx=5, pady=5)
 
         output_label = ctk.CTkLabel(frame, text="Output File (Optional - leave blank to save in memory only):")
         output_label.pack(anchor="w", padx=10, pady=(10, 5))
@@ -69,3 +69,9 @@ class ScrapingTab:
         self.app.progress_bar = ctk.CTkProgressBar(frame, orientation="horizontal", mode="determinate")
         self.app.progress_bar.set(0)
         self.app.progress_bar.pack(fill="x", padx=10, pady=(0, 10))
+
+        # Internal use label
+        internal_label = ctk.CTkLabel(frame, text="FOR INTERNAL USE ONLY", 
+                                    font=ctk.CTkFont(size=14, weight="bold"), 
+                                    text_color="#ff6b6b")
+        internal_label.pack(pady=(15, 5))

@@ -45,13 +45,13 @@ class PostScraperTab:
         # Cap toggle for max posts per profile
         self.cap_enabled_var = ctk.BooleanVar(value=False)
         self.cap_checkbox = ctk.CTkCheckBox(params_frame, text="Enable Post Cap", variable=self.cap_enabled_var, onvalue=True, offvalue=False)
-        self.cap_checkbox.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.cap_checkbox.pack(side="left", padx=5, pady=5)
 
         posts_label = ctk.CTkLabel(params_frame, text="Max Posts per Profile:")
-        posts_label.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        posts_label.pack(side="left", padx=5, pady=5)
         self.max_posts_entry = ctk.CTkEntry(params_frame, width=80)
         self.max_posts_entry.insert(0, "10")
-        self.max_posts_entry.grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        self.max_posts_entry.pack(side="left", padx=5, pady=5)
         # Disable max_posts_entry unless cap is enabled
         def toggle_max_posts_entry():
             state = "normal" if self.cap_enabled_var.get() else "disabled"
@@ -110,6 +110,12 @@ class PostScraperTab:
         # Results text area (for status and loaded JSON summary)
         self.results_text = scrolledtext.ScrolledText(frame, height=8, wrap="word", font=("Consolas", 10))
         self.results_text.pack(fill="x", padx=10, pady=(0, 10))
+
+        # Internal use label
+        internal_label = ctk.CTkLabel(frame, text="FOR INTERNAL USE ONLY", 
+                                    font=ctk.CTkFont(size=14, weight="bold"), 
+                                    text_color="#ff6b6b")
+        internal_label.pack(pady=(15, 5))
 
         # Add button to load JSON results
         self.load_json_btn = ctk.CTkButton(

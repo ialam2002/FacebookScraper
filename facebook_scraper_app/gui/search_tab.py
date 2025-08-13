@@ -225,6 +225,12 @@ class SearchTab:
         self.search_progress.set(0)
         self.search_progress.pack(fill="x", padx=10, pady=(0, 10))
 
+        # Internal use label
+        internal_label = ctk.CTkLabel(frame, text="FOR INTERNAL USE ONLY", 
+                                    font=ctk.CTkFont(size=14, weight="bold"), 
+                                    text_color="#ff6b6b")
+        internal_label.pack(pady=(15, 5))
+
     def add_person_row(self):
         row_frame = ctk.CTkFrame(self.indiv_search_frame, fg_color="transparent")
         # Check if add_person_btn is packed

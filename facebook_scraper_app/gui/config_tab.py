@@ -40,12 +40,9 @@ class ConfigTab:
 
     def build_config_tab(self):
         frame = self.frame
-        # Center everything in the frame
-        frame.grid_rowconfigure(0, weight=1)
-        frame.grid_columnconfigure(0, weight=1)
         # Card-like container for login, centered
         card = ctk.CTkFrame(frame, fg_color="#18223a", corner_radius=18)
-        card.grid(row=0, column=0, sticky="nsew", padx=0, pady=0)
+        card.pack(expand=True, fill="both", padx=20, pady=20)
 
         # Facebook icon (emoji fallback)
         icon = ctk.CTkLabel(card, text="\U0001F5E8", font=ctk.CTkFont(size=38))
@@ -92,6 +89,12 @@ class ConfigTab:
         # Status label
         self.app.config_status_label = ctk.CTkLabel(card, text="Not logged in", text_color="#7a869a", font=ctk.CTkFont(size=13))
         self.app.config_status_label.pack(pady=(0, 10))
+
+        # Internal use label
+        internal_label = ctk.CTkLabel(frame, text="FOR INTERNAL USE ONLY", 
+                                    font=ctk.CTkFont(size=14, weight="bold"), 
+                                    text_color="#ff6b6b")
+        internal_label.pack(pady=(15, 5))
 
     def _login_with_remember(self):
         email = self.app.email_entry.get()
