@@ -1,6 +1,6 @@
 
 """
-Main entry point for the Facebook Scraper GUI application.
+Main entry point for the Claimant Connection Search (CCS) application.
 Initializes and runs the main application window.
 """
 
@@ -61,29 +61,29 @@ def startup():
     preimport_thread = threading.Thread(target=preimport_heavy, daemon=True)
     preimport_thread.start()
 
-    try:
-        # Dependency check before proceeding
-        if not check_dependencies():
-            cleanup_splash(splash, splash_root)
-            sys.exit(1)
-
-        # Wait for pre-import to finish or timeout (max 2 seconds for UI responsiveness)
-        preimport_done.wait(timeout=2)
-        try:
-            from gui.gui import FacebookScraperApp
-        except ImportError as e:
-            print(f"Import error when loading FacebookScraperApp: {e}")
-            messagebox.showerror("Import Error", f"Failed to import FacebookScraperApp: {e}")
-            cleanup_splash(splash, splash_root)
-            sys.exit(1)
-        except Exception as e:
-            print(f"General error when loading FacebookScraperApp: {e}")
-            messagebox.showerror("Loading Error", f"Failed to load FacebookScraperApp: {e}")
-            cleanup_splash(splash, splash_root)
-            sys.exit(1)
-            
+    # Dependency check before proceeding
+    if not check_dependencies():
         cleanup_splash(splash, splash_root)
-        app = FacebookScraperApp()
+        sys.exit(1)
+
+    # Wait for pre-import to finish or timeout (max 2 seconds for UI responsiveness)
+    preimport_done.wait(timeout=2)
+    try:
+        from gui.gui import CCSApp
+    except ImportError as e:
+        print(f"Import error when loading CCSApp: {e}")
+        messagebox.showerror("Import Error", f"Failed to import CCSApp: {e}")
+        cleanup_splash(splash, splash_root)
+        sys.exit(1)
+    except Exception as e:
+        print(f"General error when loading CCSApp: {e}")
+        messagebox.showerror("Loading Error", f"Failed to load CCSApp: {e}")
+        cleanup_splash(splash, splash_root)
+        sys.exit(1)
+
+    cleanup_splash(splash, splash_root)
+    try:
+        app = CCSApp()
         app.mainloop()
     except Exception as e:
         cleanup_splash(splash, splash_root)

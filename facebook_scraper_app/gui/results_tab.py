@@ -136,6 +136,41 @@ class ResultsTab:
                     pass
             ws_all.column_dimensions[col_letter].width = min(max_length + 2, 50)
 
+        # --- Add Likes Data as a Second Sheet if Available ---
+        likes_data = None
+        try:
+            # Try to get likes data from PostScraperTab (if loaded)
+            if hasattr(self.app, 'post_scraper_tab') and hasattr(self.app.post_scraper_tab, 'loaded_json_results'):
+                likes_data = self.app.post_scraper_tab.loaded_json_results
+        except Exception:
+            likes_data = None
+        if likes_data:
+            ws_likes = wb.create_sheet(title="Post Likes")
+            ws_likes.append(["Scraped Profile Name", "Scraped Profile URL", "Liker Name", "Liker Profile URL"])
+            deduped = set()
+            for profile in likes_data:
+                scraped_name = profile.get('profile_name', 'Unknown')
+                scraped_url = profile.get('profile_url', '')
+                for post in profile.get('post_likes', []):
+                    for liker in post.get('liked_by', []):
+                        liker_name = liker.get('name', '')
+                        liker_url = liker.get('profile_url', '')
+                        key = (scraped_name, scraped_url, liker_name, liker_url)
+                        if key not in deduped:
+                            ws_likes.append([scraped_name, scraped_url, liker_name, liker_url])
+                            deduped.add(key)
+            # Auto-size columns
+            for col in ws_likes.columns:
+                max_length = 0
+                col_letter = get_column_letter(col[0].column)
+                for cell in col:
+                    try:
+                        if cell.value:
+                            max_length = max(max_length, len(str(cell.value)))
+                    except Exception:
+                        pass
+                ws_likes.column_dimensions[col_letter].width = min(max_length + 2, 50)
+
         # --- Custom Sheet: Mutuals Matrix ---
         # Redefined Mutuals Matrix: Columns: Main Profile Name A, Main Profile Name B, mutual friend name
         # Helper to normalize URLs (strip trailing slashes and unwanted query/fragment while preserving essential parameters)

@@ -1,6 +1,6 @@
 
 """
-Main GUI application for the Facebook Scraper.
+Main GUI application for Claimant Connection Search (CCS).
 Handles tab management, event routing, and main window logic.
 """
 
@@ -35,13 +35,13 @@ ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 
-class FacebookScraperApp(ctk.CTk):
+class CCSApp(ctk.CTk):
     def display_results(self, results):
         self.search_tab.display_results(results)
 
     def __init__(self):
         super().__init__()
-        self.title("Facebook Friends Network Scraper")
+        self.title("Claimant Connection Search (CCS)")
         self.geometry("1200x800")
 
         self.scraper_controller = ScraperController()
@@ -86,8 +86,7 @@ class FacebookScraperApp(ctk.CTk):
         tab = self.notebook.tab("Configuration")
         frame = ctk.CTkFrame(tab)
         frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        header = ctk.CTkLabel(frame, text="Facebook Login", font=ctk.CTkFont(size=16, weight="bold"))
+        header = ctk.CTkLabel(frame, text="CCS Login", font=ctk.CTkFont(size=16, weight="bold"))
         header.pack(pady=(0, 15))
 
         # Email row
