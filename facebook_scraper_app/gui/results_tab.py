@@ -15,21 +15,40 @@ class ResultsTab:
     def build_results_tab(self):
         frame = self.frame
 
-        # Search/filter box
-        search_frame = ctk.CTkFrame(frame)
-        search_frame.pack(fill="x", padx=5, pady=(5, 0))
-        ctk.CTkLabel(search_frame, text="Search/Filter:").pack(side="left", padx=(5, 2))
+        # Top control bar (search + buttons)
+        top_bar = ctk.CTkFrame(frame)
+        top_bar.pack(fill="x", padx=10, pady=(10, 0))
+
+        # Search/filter box (left side of top bar)
+        search_frame = ctk.CTkFrame(top_bar, fg_color="transparent")
+        search_frame.pack(side="left", padx=(0, 20))
+        ctk.CTkLabel(search_frame, text="Search/Filter:", font=ctk.CTkFont(size=13, weight="bold")).pack(side="left", padx=(5, 2))
         self.search_var = StringVar()
         self.search_var.trace_add('write', self.on_search_update)
-        self.search_entry = ctk.CTkEntry(search_frame, textvariable=self.search_var, width=300)
+        self.search_entry = ctk.CTkEntry(search_frame, textvariable=self.search_var, width=220)
         self.search_entry.pack(side="left", padx=2)
 
+        # Buttons (right side of top bar)
+        buttons_frame = ctk.CTkFrame(top_bar, fg_color="transparent")
+        buttons_frame.pack(side="left", padx=(0, 0))
+        clear_btn = ctk.CTkButton(buttons_frame, text="Clear Results", command=self.app.clear_results, width=120)
+        clear_btn.pack(side="left", padx=5)
+        export_btn = ctk.CTkButton(buttons_frame, text="Export JSON", command=self.app.export_results, width=120)
+        export_btn.pack(side="left", padx=5)
+        export_excel_btn = ctk.CTkButton(buttons_frame, text="Export Excel", command=self.export_to_excel, width=120)
+        export_excel_btn.pack(side="left", padx=5)
+        load_btn = ctk.CTkButton(buttons_frame, text="Load JSON", command=self.app.load_from_json, width=120)
+        load_btn.pack(side="left", padx=5)
+
+        # Results display area (full width below top bar)
+        results_area = ctk.CTkFrame(frame, fg_color="#222222")
+        results_area.pack(fill="both", expand=True, padx=10, pady=(10, 10))
+
         # Scrollable area for collapsible results
-        # Use a valid Tkinter color for Canvas background
-        results_canvas = Canvas(frame, borderwidth=0, highlightthickness=0, bg="#222222")
+        results_canvas = Canvas(results_area, borderwidth=0, highlightthickness=0, bg="#222222")
         self.results_scrollable_frame = ctk.CTkFrame(results_canvas)
         self.results_scrollable_frame_id = results_canvas.create_window((0, 0), window=self.results_scrollable_frame, anchor="nw")
-        vscroll = Scrollbar(frame, orient="vertical", command=results_canvas.yview)
+        vscroll = Scrollbar(results_area, orient="vertical", command=results_canvas.yview)
         results_canvas.configure(yscrollcommand=vscroll.set)
         results_canvas.pack(side="left", fill="both", expand=True, padx=5, pady=5)
         vscroll.pack(side="right", fill="y")
@@ -38,39 +57,16 @@ class ResultsTab:
             results_canvas.configure(scrollregion=results_canvas.bbox("all"))
         self.results_scrollable_frame.bind("<Configure>", _on_frame_configure)
 
-        # More controlled mousewheel scrolling - only scrolls when mouse is over the canvas
         def _on_mousewheel(event):
             results_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        
-        # Only bind mousewheel when mouse enters the canvas, unbind when it leaves
         def _bind_mousewheel(event): 
             results_canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        
         def _unbind_mousewheel(event): 
             results_canvas.unbind_all("<MouseWheel>")
-        
-        # Set up mousewheel bindings
         results_canvas.bind("<Enter>", _bind_mousewheel)
         results_canvas.bind("<Leave>", _unbind_mousewheel)
 
         self.collapsible_sections = []
-
-        # Buttons
-        buttons_frame = ctk.CTkFrame(frame, fg_color="transparent")
-        buttons_frame.pack(pady=10)
-
-        clear_btn = ctk.CTkButton(buttons_frame, text="Clear Results", command=self.app.clear_results)
-        clear_btn.pack(side="left", padx=5)
-
-
-        export_btn = ctk.CTkButton(buttons_frame, text="Export Results to JSON", command=self.app.export_results)
-        export_btn.pack(side="left", padx=5)
-
-        export_excel_btn = ctk.CTkButton(buttons_frame, text="Export to Excel", command=self.export_to_excel)
-        export_excel_btn.pack(side="left", padx=5)
-
-        load_btn = ctk.CTkButton(buttons_frame, text="Load from JSON", command=self.app.load_from_json)
-        load_btn.pack(side="left", padx=5)
 
         # Internal use label
         internal_label = ctk.CTkLabel(frame, text="FOR INTERNAL USE ONLY", 
