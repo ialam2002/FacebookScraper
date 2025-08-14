@@ -52,6 +52,20 @@ class CCSApp(ctk.CTk):
         # Mapping: person_id (e.g. name) -> list of profile URLs
         self.person_to_profiles = {}  # <-- NEW
 
+        # --- Add Logo at Top ---
+        logo_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "logo", "gny-logo.png"))
+        try:
+            logo_img = Image.open(logo_path)
+            logo_img = logo_img.resize((120, 120), Image.LANCZOS)
+            # Add white background
+            bg = Image.new("RGBA", logo_img.size, (255, 255, 255, 255))
+            logo_img = Image.alpha_composite(bg, logo_img.convert("RGBA"))
+            self.logo_photo = ImageTk.PhotoImage(logo_img)
+            logo_label = ctk.CTkLabel(self, image=self.logo_photo, text="")
+            logo_label.pack(pady=(10, 0))
+        except Exception as e:
+            print(f"Logo load error: {e}")
+
         self.notebook = ctk.CTkTabview(self)
         self.notebook.pack(fill="both", expand=True, padx=10, pady=10)
 
